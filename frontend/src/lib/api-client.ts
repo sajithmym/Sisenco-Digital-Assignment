@@ -39,10 +39,12 @@ apiClient.interceptors.response.use(
             { refreshToken }
           );
 
-          localStorage.setItem(AUTH_SETTINGS.accessTokenKey, data.accessToken);
-          localStorage.setItem(AUTH_SETTINGS.refreshTokenKey, data.refreshToken);
+          // Backend wraps every response in ApiResponse — unwrap the payload.
+          const tokens = data.data;
+          localStorage.setItem(AUTH_SETTINGS.accessTokenKey, tokens.accessToken);
+          localStorage.setItem(AUTH_SETTINGS.refreshTokenKey, tokens.refreshToken);
 
-          originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+          originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
           return apiClient(originalRequest);
         }
       } catch (refreshError) {

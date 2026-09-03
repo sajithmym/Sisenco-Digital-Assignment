@@ -6,6 +6,7 @@ import {
   Param,
   Body,
   Query,
+  Req,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -14,8 +15,10 @@ import { ReportsService } from './reports.service';
 import { ReportWorkflowService } from './report-workflow.service';
 import { CreateReportDto, UpdateReportDto, ReportFilterDto } from './dto';
 import { JwtAuthGuard, RolesGuard } from '../common/guards';
-import { CurrentUser, Roles } from '../common/decorators';
+import { Roles } from '../common/decorators';
 import { UserRole } from '../common/enums';
+import { ApiResponse } from '../common/dto';
+import { RequestWithUser } from '../common/interfaces';
 
 @Controller()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -28,89 +31,123 @@ export class ReportsController {
   // ─── Member Endpoints ──────────────────────────────────
 
   @Post('reports')
-  create(
-    @CurrentUser('sub') userId: string,
-    @Body() dto: CreateReportDto,
-  ) {
-    return this.reportsService.create(userId, dto);
+  async create(@Req() req: RequestWithUser, @Body() dto: CreateReportDto) {
+    try {
+      const data = await this.reportsService.create(req.user.sub, dto);
+      return ApiResponse.created(data, 'Report created successfully');
+    } catch (error) {
+      // Rethrow — GlobalExceptionFilter formats and sends the actual error message.
+      throw error;
+    }
   }
 
   @Get('reports/my')
-  findMyReports(
-    @CurrentUser('sub') userId: string,
+  async findMyReports(
+    @Req() req: RequestWithUser,
     @Query() pagination: ReportFilterDto,
   ) {
-    return this.reportsService.findMyReports(userId, pagination);
+    try {
+      const result = await this.reportsService.findMyReports(req.user.sub, pagination);
+      return ApiResponse.paginated(result.data, result.meta, 'Reports fetched successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Get('reports/:id')
-  findById(
-    @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
-    @CurrentUser('role') userRole: UserRole,
-  ) {
-    return this.reportsService.findById(id, userId, userRole);
+  async findById(@Param('id') id: string, @Req() req: RequestWithUser) {
+    try {
+      const data = await this.reportsService.findById(id, req.user.sub, req.user.role);
+      return ApiResponse.success(data, 'Report fetched successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Patch('reports/:id')
-  update(
+  async update(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @Req() req: RequestWithUser,
     @Body() dto: UpdateReportDto,
   ) {
-    return this.reportsService.update(id, userId, dto);
+    try {
+      const data = await this.reportsService.update(id, req.user.sub, dto);
+      return ApiResponse.success(data, 'Report updated successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Post('reports/:id/submit')
   @HttpCode(HttpStatus.OK)
-  submit(
-    @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
-  ) {
-    return this.workflowService.submit(id, userId);
+  async submit(@Param('id') id: string, @Req() req: RequestWithUser) {
+    try {
+      const data = await this.workflowService.submit(id, req.user.sub);
+      return ApiResponse.success(data, 'Report submitted successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Get('reports/:id/versions')
-  getVersionHistory(@Param('id') id: string) {
-    return this.workflowService.getVersionHistory(id);
+  async getVersionHistory(@Param('id') id: string) {
+    try {
+      const data = await this.workflowService.getVersionHistory(id);
+      return ApiResponse.success(data, 'Version history fetched successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 
   // ─── Manager Endpoints ─────────────────────────────────
 
   @Get('manager/reports')
   @Roles(UserRole.MANAGER, UserRole.ADMIN)
-  findTeamReports(@Query() filters: ReportFilterDto) {
-    return this.reportsService.findByFilters(filters);
+  async findTeamReports(@Query() filters: ReportFilterDto) {
+    try {
+      const result = await this.reportsService.findByFilters(filters);
+      return ApiResponse.paginated(result.data, result.meta, 'Reports fetched successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Get('manager/reports/:id')
   @Roles(UserRole.MANAGER, UserRole.ADMIN)
-  findTeamReportById(
-    @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
-    @CurrentUser('role') userRole: UserRole,
-  ) {
-    return this.reportsService.findById(id, userId, userRole);
+  async findTeamReportById(@Param('id') id: string, @Req() req: RequestWithUser) {
+    try {
+      const data = await this.reportsService.findById(id, req.user.sub, req.user.role);
+      return ApiResponse.success(data, 'Report fetched successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Post('manager/reports/:id/request-changes')
   @Roles(UserRole.MANAGER, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  requestChanges(
+  async requestChanges(
     @Param('id') id: string,
-    @CurrentUser('sub') reviewerId: string,
+    @Req() req: RequestWithUser,
     @Body('comment') comment: string,
   ) {
-    return this.workflowService.requestChanges(id, reviewerId, comment);
+    try {
+      const data = await this.workflowService.requestChanges(id, req.user.sub, comment);
+      return ApiResponse.success(data, 'Changes requested successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Post('manager/reports/:id/approve')
   @Roles(UserRole.MANAGER, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  approve(
-    @Param('id') id: string,
-    @CurrentUser('sub') reviewerId: string,
-  ) {
-    return this.workflowService.approve(id, reviewerId);
+  async approve(@Param('id') id: string, @Req() req: RequestWithUser) {
+    try {
+      const data = await this.workflowService.approve(id, req.user.sub);
+      return ApiResponse.success(data, 'Report approved successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 }

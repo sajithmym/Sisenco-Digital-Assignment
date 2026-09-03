@@ -1,5 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { ApiResponse } from '../common/dto';
 
 @Controller()
 export class HealthController {
@@ -9,17 +10,22 @@ export class HealthController {
   async check() {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
-      return {
-        status: 'ok',
-        database: 'connected',
-        timestamp: new Date().toISOString(),
-      };
+      return ApiResponse.success(
+        {
+          status: 'ok',
+          database: 'connected',
+        },
+        'Service is healthy',
+      );
     } catch (error) {
-      return {
-        status: 'error',
-        database: 'disconnected',
-        timestamp: new Date().toISOString(),
-      };
+      // Health checks report degraded state instead of throwing.
+      return ApiResponse.success(
+        {
+          status: 'error',
+          database: 'disconnected',
+        },
+        'Service is unhealthy',
+      );
     }
   }
 }

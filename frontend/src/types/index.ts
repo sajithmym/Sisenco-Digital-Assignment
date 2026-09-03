@@ -164,14 +164,31 @@ export interface ActivityItem {
 }
 
 // ─── Pagination ──────────────────────────────────────────
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+  meta: PaginationMeta;
+}
+
+// ─── API Response Envelope ───────────────────────────────
+// Mirrors backend `ApiResponse` — every backend endpoint wraps its payload.
+export interface ApiResponse<T> {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: T;
+  timestamp: string;
+  code?: string;
+}
+
+export interface ApiPaginatedResponse<T> extends ApiResponse<T[]> {
+  meta: PaginationMeta;
 }
 
 // ─── Auth ────────────────────────────────────────────────

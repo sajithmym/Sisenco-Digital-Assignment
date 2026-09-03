@@ -22,12 +22,12 @@ export const managerApi = {
     weekEnd?: string;
   }): Promise<PaginatedResponse<Report>> {
     const response = await apiClient.get("/manager/reports", { params });
-    return response.data;
+    return response.data.data;
   },
 
   async getTeamReportById(id: string): Promise<Report> {
     const response = await apiClient.get(`/manager/reports/${id}`);
-    return response.data;
+    return response.data.data;
   },
 
   async requestChanges(id: string, comment: string): Promise<void> {
@@ -43,41 +43,41 @@ export const managerApi = {
     const response = await apiClient.get("/manager/dashboard/summary", {
       params: { weekStart, weekEnd },
     });
-    return response.data;
+    return response.data.data;
   },
 
   async getStatusDistribution(weekStart?: string, weekEnd?: string): Promise<StatusDistribution[]> {
     const response = await apiClient.get("/manager/dashboard/status-distribution", {
       params: { weekStart, weekEnd },
     });
-    return response.data;
+    return response.data.data;
   },
 
   async getTaskTrends(weeks?: number): Promise<TaskTrend[]> {
     const response = await apiClient.get("/manager/dashboard/task-trends", {
       params: { weeks },
     });
-    return response.data;
+    return response.data.data;
   },
 
   async getProjectWorkload(weekStart?: string, weekEnd?: string): Promise<ProjectWorkload[]> {
     const response = await apiClient.get("/manager/dashboard/project-workload", {
       params: { weekStart, weekEnd },
     });
-    return response.data;
+    return response.data.data;
   },
 
   async getTimeDistribution(weekStart?: string, weekEnd?: string): Promise<TimeDistribution[]> {
     const response = await apiClient.get("/manager/dashboard/time-distribution", {
       params: { weekStart, weekEnd },
     });
-    return response.data;
+    return response.data.data;
   },
 
   async getRecentActivity(limit?: number): Promise<ActivityItem[]> {
     const response = await apiClient.get("/manager/dashboard/activity", {
       params: { limit },
     });
-    return response.data;
+    return response.data.data;
   },
 };

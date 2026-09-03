@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateReportDto, UpdateReportDto, ReportFilterDto } from './dto';
@@ -14,6 +15,23 @@ export class ReportsService {
   constructor(private prisma: PrismaService) {}
 
   async create(userId: string, dto: CreateReportDto) {
+    // Validate the referenced project up-front so the UI gets a clear error
+    // instead of a generic foreign-key failure from the database.
+    if (dto.projectId) {
+      const project = await this.prisma.project.findUnique({
+        where: { id: dto.projectId },
+        select: { id: true, isActive: true },
+      });
+
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
+
+      if (!project.isActive) {
+        throw new BadRequestException('Project is deactivated and cannot be used');
+      }
+    }
+
     return this.prisma.report.create({
       data: {
         userId,

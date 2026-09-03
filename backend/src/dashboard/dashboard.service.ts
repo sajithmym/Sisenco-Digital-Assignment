@@ -80,7 +80,10 @@ export class DashboardService {
       if (!acc[weekKey]) {
         acc[weekKey] = { week: weekKey, total: 0, completed: 0 };
       }
-      acc[weekKey].total += report.tasks.length;        acc[weekKey].completed += report.tasks.filter((t) => t.status === (DASHBOARD_SETTINGS.completedTaskStatus as any)).length;
+      acc[weekKey].total += report.tasks.length;
+      acc[weekKey].completed += report.tasks.filter(
+        (t) => t.status === (DASHBOARD_SETTINGS.completedTaskStatus as any),
+      ).length;
       return acc;
     }, {} as Record<string, { week: string; total: number; completed: number }>);
 

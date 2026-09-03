@@ -14,7 +14,7 @@ import { CreateProjectDto, UpdateProjectDto } from './dto';
 import { JwtAuthGuard, RolesGuard } from '../common/guards';
 import { Roles } from '../common/decorators';
 import { UserRole } from '../common/enums';
-import { PaginationDto } from '../common/dto';
+import { ApiResponse, PaginationDto } from '../common/dto';
 
 @Controller('projects')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -22,30 +22,56 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Get()
-  findAll(@Query() pagination: PaginationDto) {
-    return this.projectsService.findAll(pagination);
+  async findAll(@Query() pagination: PaginationDto) {
+    try {
+      const result = await this.projectsService.findAll(pagination);
+      return ApiResponse.paginated(result.data, result.meta, 'Projects fetched successfully');
+    } catch (error) {
+      // Rethrow — GlobalExceptionFilter formats and sends the actual error message.
+      throw error;
+    }
   }
 
   @Get(':id')
-  findById(@Param('id') id: string) {
-    return this.projectsService.findById(id);
+  async findById(@Param('id') id: string) {
+    try {
+      const data = await this.projectsService.findById(id);
+      return ApiResponse.success(data, 'Project fetched successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  create(@Body() dto: CreateProjectDto) {
-    return this.projectsService.create(dto);
+  async create(@Body() dto: CreateProjectDto) {
+    try {
+      const data = await this.projectsService.create(dto);
+      return ApiResponse.created(data, 'Project created successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Patch(':id')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  update(@Param('id') id: string, @Body() dto: UpdateProjectDto) {
-    return this.projectsService.update(id, dto);
+  async update(@Param('id') id: string, @Body() dto: UpdateProjectDto) {
+    try {
+      const data = await this.projectsService.update(id, dto);
+      return ApiResponse.success(data, 'Project updated successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Delete(':id')
   @Roles(UserRole.ADMIN)
-  remove(@Param('id') id: string) {
-    return this.projectsService.remove(id);
+  async remove(@Param('id') id: string) {
+    try {
+      const data = await this.projectsService.remove(id);
+      return ApiResponse.success(data, 'Project deactivated successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 }

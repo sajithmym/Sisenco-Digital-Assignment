@@ -6,12 +6,12 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  Request,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto';
 import { JwtAuthGuard } from '../common/guards';
 import { CurrentUser } from '../common/decorators';
+import { ApiResponse } from '../common/dto';
 
 @Controller('auth')
 export class AuthController {
@@ -19,30 +19,56 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+    try {
+      const data = await this.authService.register(dto);
+      return ApiResponse.created(data, 'Account registered successfully');
+    } catch (error) {
+      // Rethrow — GlobalExceptionFilter formats and sends the actual error message.
+      throw error;
+    }
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto.email, dto.password);
+    try {
+      const data = await this.authService.login(dto.email, dto.password);
+      return ApiResponse.success(data, 'Logged in successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(@Body('refreshToken') refreshToken: string) {
-    return this.authService.refreshTokens(refreshToken);
+    try {
+      const data = await this.authService.refreshTokens(refreshToken);
+      return ApiResponse.success(data, 'Tokens refreshed successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logout(@Body('refreshToken') refreshToken: string) {
-    return this.authService.logout(refreshToken);
+    try {
+      await this.authService.logout(refreshToken);
+      return ApiResponse.success(null, 'Logged out successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async getMe(@CurrentUser('sub') userId: string) {
-    return this.authService.getMe(userId);
+    try {
+      const data = await this.authService.getMe(userId);
+      return ApiResponse.success(data, 'User fetched successfully');
+    } catch (error) {
+      throw error;
+    }
   }
 }
