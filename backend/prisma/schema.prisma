@@ -1,0 +1,242 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum UserRole {
+  TEAM_MEMBER
+  MANAGER
+  ADMIN
+}
+
+enum ReportStatus {
+  DRAFT
+  SUBMITTED
+  NEEDS_CORRECTION
+  APPROVED
+}
+
+enum ReviewAction {
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  BLOCKED
+}
+
+enum WorkHourType {
+  DEVELOPMENT
+  TESTING
+  MEETINGS
+  DOCUMENTATION
+  OTHER
+}
+
+// ─── Models ──────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  role          UserRole  @default(TEAM_MEMBER)
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  reports          Report[]
+  reviews          Review[]         @relation("Reviewer")
+  refreshTokens    RefreshToken[]
+  reportVersions   ReportVersion[]  @relation("VersionCreator")
+  userProjects     UserProject[]
+
+  @@map("users")
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  reports      Report[]
+  userProjects UserProject[]
+
+  @@map("projects")
+}
+
+model UserProject {
+  id        String  @id @default(uuid())
+  userId    String  @map("user_id")
+  projectId String  @map("project_id")
+
+  user    User    @relation(fields: [userId], references: [id])
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@unique([userId, projectId])
+  @@map("user_projects")
+}
+
+model Report {
+  id                   String       @id @default(uuid())
+  userId               String       @map("user_id")
+  projectId            String?      @map("project_id")
+  weekStart            DateTime     @map("week_start")
+  weekEnd              DateTime     @map("week_end")
+  status               ReportStatus @default(DRAFT)
+  notes                String?
+  latestVersionNumber  Int          @default(0) @map("latest_version_number")
+  submittedAt          DateTime?    @map("submitted_at")
+  approvedAt           DateTime?    @map("approved_at")
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+
+  user           User            @relation(fields: [userId], references: [id])
+  project        Project?        @relation(fields: [projectId], references: [id])
+  tasks          ReportTask[]
+  nextWeekTasks  NextWeekTask[]
+  blockers       Blocker[]
+  achievements   Achievement[]
+  workHours      WorkHour[]
+  versions       ReportVersion[]
+  reviews        Review[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([weekStart])
+  @@index([weekEnd])
+  @@index([projectId])
+  @@map("reports")
+}
+
+model ReportTask {
+  id                String     @id @default(uuid())
+  reportId          String     @map("report_id")
+  taskName          String     @map("task_name")
+  priority          TaskPriority @default(MEDIUM)
+  plannedPercentage Int        @default(0) @map("planned_percentage")
+  actualPercentage  Int        @default(0) @map("actual_percentage")
+  status            TaskStatus @default(TODO)
+  plannedMinutes    Int        @default(0) @map("planned_minutes")
+  actualMinutes     Int        @default(0) @map("actual_minutes")
+  deliverable       String?
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("report_tasks")
+}
+
+model NextWeekTask {
+  id          String   @id @default(uuid())
+  reportId    String   @map("report_id")
+  description String
+  sortOrder   Int      @default(0) @map("sort_order")
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("next_week_tasks")
+}
+
+model Blocker {
+  id           String  @id @default(uuid())
+  reportId     String  @map("report_id")
+  description  String
+  isKeyIssue   Boolean @default(false) @map("is_key_issue")
+  isResolved   Boolean @default(false) @map("is_resolved")
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("blockers")
+}
+
+model Achievement {
+  id              String  @id @default(uuid())
+  reportId        String  @map("report_id")
+  description     String
+  isKeyAchievement Boolean @default(false) @map("is_key_achievement")
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("achievements")
+}
+
+model WorkHour {
+  id       String       @id @default(uuid())
+  reportId String       @map("report_id")
+  type     WorkHourType
+  minutes  Int
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("work_hours")
+}
+
+model ReportVersion {
+  id              String   @id @default(uuid())
+  reportId        String   @map("report_id")
+  versionNumber   Int      @map("version_number")
+  snapshotJson    Json     @map("snapshot_json")
+  submittedAt     DateTime @default(now()) @map("submitted_at")
+  createdById     String   @map("created_by")
+
+  createdBy User   @relation("VersionCreator", fields: [createdById], references: [id])
+  report    Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reviews   Review[]
+
+  @@unique([reportId, versionNumber])
+  @@index([reportId])
+  @@map("report_versions")
+}
+
+model Review {
+  id              String       @id @default(uuid())
+  reportId        String       @map("report_id")
+  reportVersionId String?      @map("report_version_id")
+  reviewerId      String       @map("reviewer_id")
+  action          ReviewAction
+  comment         String?
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  reviewer      User           @relation("Reviewer", fields: [reviewerId], references: [id])
+  report        Report         @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportVersion ReportVersion? @relation(fields: [reportVersionId], references: [id])
+
+  @@index([reportId])
+  @@map("reviews")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
