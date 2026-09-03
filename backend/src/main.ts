@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './common/filters';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -22,6 +23,9 @@ async function bootstrap() {
 
   // Global prefix
   app.setGlobalPrefix('api/v1');
+
+  // Global exception filter
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   // Global validation pipe
   app.useGlobalPipes(

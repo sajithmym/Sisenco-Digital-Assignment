@@ -118,7 +118,7 @@ export default function ManagerReportsPage() {
       ) : (
         <div className="space-y-3">
           {reports.map((report) => (
-            <Link key={report.id} href={`/manager/reports`}>
+            <Link key={report.id} href={`/manager/reports/${report.id}`}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
