@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { USER_ROLE_LABELS } from "@/constants";
+import { PAGINATION_SETTINGS } from "@/lib/settings";
 import type { User, PaginatedResponse } from "@/types";
 
 export default function ManagerUsersPage() {
@@ -21,7 +22,7 @@ export default function ManagerUsersPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await usersApi.getAll({ page: 1, limit: 50 });
+      const result = await usersApi.getAll({ page: PAGINATION_SETTINGS.defaultPage, limit: PAGINATION_SETTINGS.managerListLimit });
       setData(result);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to load users");

@@ -1,16 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters';
+import { SERVER_SETTINGS } from './settings';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT', 5000);
-  const frontendUrl = configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+  const { port, frontendUrl, apiPrefix } = SERVER_SETTINGS;
 
   // Security
   app.use(helmet());
@@ -22,7 +20,7 @@ async function bootstrap() {
   });
 
   // Global prefix
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix(apiPrefix);
 
   // Global exception filter
   app.useGlobalFilters(new GlobalExceptionFilter());

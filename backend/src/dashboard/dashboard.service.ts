@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { ReportStatus } from '../common/enums';
+import { ReportStatus, UserRole } from '../common/enums';
+import { DASHBOARD_SETTINGS } from '../settings';
 
 @Injectable()
 export class DashboardService {
@@ -23,7 +24,7 @@ export class DashboardService {
       this.prisma.report.count({ where: { ...dateFilter, status: ReportStatus.APPROVED } }),
       this.prisma.report.count({ where: { ...dateFilter, status: ReportStatus.NEEDS_CORRECTION } }),
       this.prisma.report.count({ where: { ...dateFilter, status: ReportStatus.DRAFT } }),
-      this.prisma.user.count({ where: { isActive: true, role: 'TEAM_MEMBER' } }),
+      this.prisma.user.count({ where: { isActive: true, role: UserRole.TEAM_MEMBER } }),
       this.prisma.blocker.count({ where: { isResolved: false } }),
     ]);
 
@@ -58,7 +59,7 @@ export class DashboardService {
     }));
   }
 
-  async getTaskTrends(weeks: number = 8) {
+  async getTaskTrends(weeks: number = DASHBOARD_SETTINGS.defaultTaskTrendWeeks) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - weeks * 7);
 
@@ -79,8 +80,7 @@ export class DashboardService {
       if (!acc[weekKey]) {
         acc[weekKey] = { week: weekKey, total: 0, completed: 0 };
       }
-      acc[weekKey].total += report.tasks.length;
-      acc[weekKey].completed += report.tasks.filter((t) => t.status === 'DONE').length;
+      acc[weekKey].total += report.tasks.length;        acc[weekKey].completed += report.tasks.filter((t) => t.status === (DASHBOARD_SETTINGS.completedTaskStatus as any)).length;
       return acc;
     }, {} as Record<string, { week: string; total: number; completed: number }>);
 
@@ -130,7 +130,7 @@ export class DashboardService {
     }));
   }
 
-  async getRecentActivity(limit: number = 20) {
+  async getRecentActivity(limit: number = DASHBOARD_SETTINGS.defaultActivityLimit) {
     const reviews = await this.prisma.review.findMany({
       take: limit,
       include: {

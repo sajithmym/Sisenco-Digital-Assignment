@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
+import { PAGINATION_SETTINGS } from "@/lib/settings";
 import type { Project, PaginatedResponse } from "@/types";
 
 export default function ManagerProjectsPage() {
@@ -33,7 +34,7 @@ export default function ManagerProjectsPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await projectsApi.getAll({ page: 1, limit: 50 });
+      const result = await projectsApi.getAll({ page: PAGINATION_SETTINGS.defaultPage, limit: PAGINATION_SETTINGS.managerListLimit });
       setData(result);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to load projects");

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FileText, LayoutDashboard, History, LogOut } from "lucide-react";
 import { authApi } from "@/services/auth.api";
+import { AUTH_SETTINGS } from "@/lib/settings";
 import type { User } from "@/types";
 
 const navItems = [
@@ -21,7 +22,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = localStorage.getItem(AUTH_SETTINGS.accessTokenKey);
     if (!token) {
       router.push("/login");
       return;
@@ -33,8 +34,8 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
+    localStorage.removeItem(AUTH_SETTINGS.accessTokenKey);
+    localStorage.removeItem(AUTH_SETTINGS.refreshTokenKey);
     router.push("/login");
   };
 

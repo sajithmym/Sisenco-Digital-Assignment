@@ -7,14 +7,14 @@ export class PaginationDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  page?: number = PAGINATION_CONSTANTS.DEFAULT_PAGE;
+  page: number = PAGINATION_CONSTANTS.DEFAULT_PAGE;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(PAGINATION_CONSTANTS.MAX_LIMIT)
-  limit?: number = PAGINATION_CONSTANTS.DEFAULT_LIMIT;
+  limit: number = PAGINATION_CONSTANTS.DEFAULT_LIMIT;
 }
 
 export class PaginatedResponse<T> {

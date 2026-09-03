@@ -1,89 +1,53 @@
 import { PrismaClient, UserRole, ReportStatus, ReviewAction } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { SEED_SETTINGS, AUTH_SETTINGS } from '../src/settings';
 
 const prisma = new PrismaClient();
 
 async function hashPassword(password: string) {
-  return bcrypt.hash(password, 12);
+  return bcrypt.hash(password, AUTH_SETTINGS.passwordHashRounds);
 }
 
 async function main() {
   console.log('🌱 Seeding database...');
 
-  const password = await hashPassword('password123');
+  const password = await hashPassword(SEED_SETTINGS.defaultPassword);
 
   // ─── Users ─────────────────────────────────────────────
   const manager = await prisma.user.upsert({
-    where: { email: 'sarah@example.com' },
+    where: { email: SEED_SETTINGS.manager.email },
     update: {},
     create: {
-      name: 'Sarah Fernando',
-      email: 'sarah@example.com',
+      name: SEED_SETTINGS.manager.name,
+      email: SEED_SETTINGS.manager.email,
       passwordHash: password,
       role: UserRole.MANAGER,
     },
   });
 
-  const members = await Promise.all([
-    prisma.user.upsert({
-      where: { email: 'kasun@example.com' },
-      update: {},
-      create: {
-        name: 'Kasun Silva',
-        email: 'kasun@example.com',
-        passwordHash: password,
-        role: UserRole.TEAM_MEMBER,
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: 'ayesha@example.com' },
-      update: {},
-      create: {
-        name: 'Ayesha Perera',
-        email: 'ayesha@example.com',
-        passwordHash: password,
-        role: UserRole.TEAM_MEMBER,
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: 'mohamed@example.com' },
-      update: {},
-      create: {
-        name: 'Mohamed Rizwan',
-        email: 'mohamed@example.com',
-        passwordHash: password,
-        role: UserRole.TEAM_MEMBER,
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: 'nimal@example.com' },
-      update: {},
-      create: {
-        name: 'Nimal Jayasinghe',
-        email: 'nimal@example.com',
-        passwordHash: password,
-        role: UserRole.TEAM_MEMBER,
-      },
-    }),
-  ]);
+  const members = await Promise.all(
+    SEED_SETTINGS.members.map((m) =>
+      prisma.user.upsert({
+        where: { email: m.email },
+        update: {},
+        create: {
+          name: m.name,
+          email: m.email,
+          passwordHash: password,
+          role: UserRole.TEAM_MEMBER,
+        },
+      }),
+    ),
+  );
 
   console.log('✅ Users created');
 
   // ─── Projects ──────────────────────────────────────────
-  const projects = await Promise.all([
-    prisma.project.create({
-      data: { name: 'Client Portal', description: 'Client-facing web portal' },
-    }),
-    prisma.project.create({
-      data: { name: 'Internal ERP', description: 'Internal enterprise resource planning system' },
-    }),
-    prisma.project.create({
-      data: { name: 'Mobile Application', description: 'Cross-platform mobile app' },
-    }),
-    prisma.project.create({
-      data: { name: 'Research & Development', description: 'R&D projects and experiments' },
-    }),
-  ]);
+  const projects = await Promise.all(
+    SEED_SETTINGS.projects.map((p) =>
+      prisma.project.create({ data: { name: p.name, description: p.description } }),
+    ),
+  );
 
   console.log('✅ Projects created');
 
@@ -104,7 +68,7 @@ async function main() {
 
   // Create reports for each member across several weeks
   for (const member of members) {
-    for (let w = 0; w < 4; w++) {
+    for (let w = 0; w < SEED_SETTINGS.weeksToSeed; w++) {
       const weekStart = getWeekStart(w);
       const weekEnd = getWeekEnd(weekStart);
       const status =
@@ -125,46 +89,13 @@ async function main() {
           status,
           notes: `Week ${w + 1} notes for ${member.name}`,
           latestVersionNumber: w === 1 ? 2 : 1,
-          submittedAt: [ReportStatus.SUBMITTED, ReportStatus.APPROVED, ReportStatus.NEEDS_CORRECTION].includes(status) ? weekEnd : null,
+          submittedAt: status !== ReportStatus.DRAFT ? weekEnd : null,
           approvedAt: status === ReportStatus.APPROVED ? weekEnd : null,
           tasks: {
-            create: [
-              {
-                taskName: 'Feature development',
-                priority: 'HIGH',
-                plannedPercentage: 60,
-                actualPercentage: 55,
-                status: 'DONE',
-                plannedMinutes: 480,
-                actualMinutes: 440,
-                deliverable: 'Implemented feature X',
-              },
-              {
-                taskName: 'Code review',
-                priority: 'MEDIUM',
-                plannedPercentage: 20,
-                actualPercentage: 25,
-                status: 'DONE',
-                plannedMinutes: 160,
-                actualMinutes: 200,
-              },
-              {
-                taskName: 'Bug fixes',
-                priority: 'LOW',
-                plannedPercentage: 20,
-                actualPercentage: 20,
-                status: 'IN_PROGRESS',
-                plannedMinutes: 160,
-                actualMinutes: 160,
-              },
-            ],
+            create: [...SEED_SETTINGS.seedTasks],
           },
           nextWeekTasks: {
-            create: [
-              { description: 'Continue feature development', sortOrder: 0 },
-              { description: 'Write unit tests', sortOrder: 1 },
-              { description: 'Update documentation', sortOrder: 2 },
-            ],
+            create: [...SEED_SETTINGS.seedNextWeekTasks],
           },
           blockers: {
             create: [
@@ -184,12 +115,7 @@ async function main() {
             ],
           },
           workHours: {
-            create: [
-              { type: 'DEVELOPMENT', minutes: 480 },
-              { type: 'TESTING', minutes: 120 },
-              { type: 'MEETINGS', minutes: 60 },
-              { type: 'DOCUMENTATION', minutes: 60 },
-            ],
+            create: [...SEED_SETTINGS.seedWorkHours],
           },
         },
         include: { tasks: true },

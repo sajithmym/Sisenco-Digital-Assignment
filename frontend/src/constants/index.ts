@@ -85,8 +85,10 @@ export const ROUTES = {
 } as const;
 
 // ─── Pagination ──────────────────────────────────────────
+import { PAGINATION_SETTINGS } from "@/lib/settings";
+
 export const PAGINATION = {
-  DEFAULT_PAGE: 1,
-  DEFAULT_LIMIT: 20,
-  PAGE_SIZE_OPTIONS: [10, 20, 50, 100],
+  DEFAULT_PAGE: PAGINATION_SETTINGS.defaultPage,
+  DEFAULT_LIMIT: PAGINATION_SETTINGS.defaultLimit,
+  PAGE_SIZE_OPTIONS: [...PAGINATION_SETTINGS.pageSizeOptions],
 } as const;

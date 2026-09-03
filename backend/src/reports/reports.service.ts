@@ -7,6 +7,7 @@ import { PrismaService } from '../database/prisma.service';
 import { CreateReportDto, UpdateReportDto, ReportFilterDto } from './dto';
 import { PaginatedResponse } from '../common/dto';
 import { ReportStatus, UserRole } from '../common/enums';
+import { PAGINATION_SETTINGS } from '../settings';
 
 @Injectable()
 export class ReportsService {

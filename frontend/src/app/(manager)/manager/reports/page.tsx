@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
 import { REPORT_STATUSES } from "@/constants";
+import { PAGINATION_SETTINGS } from "@/lib/settings";
 import type { Report, PaginatedResponse } from "@/types";
 
 export default function ManagerReportsPage() {
@@ -37,7 +38,7 @@ export default function ManagerReportsPage() {
     setLoading(true);
     setError(null);
     try {
-      const params: any = { page: 1, limit: 50 };
+      const params: any = { page: PAGINATION_SETTINGS.defaultPage, limit: PAGINATION_SETTINGS.managerListLimit };
       if (filters.status) params.status = filters.status;
       if (filters.weekStart) params.weekStart = filters.weekStart;
       if (filters.weekEnd) params.weekEnd = filters.weekEnd;

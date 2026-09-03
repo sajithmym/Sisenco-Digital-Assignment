@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
+import { PAGINATION_SETTINGS } from "@/lib/settings";
 import type { Report, PaginatedResponse } from "@/types";
 
 export default function ReportHistoryPage() {
@@ -21,7 +22,7 @@ export default function ReportHistoryPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await reportsApi.getMyReports({ page: 1, limit: 50 });
+      const result = await reportsApi.getMyReports({ page: PAGINATION_SETTINGS.defaultPage, limit: PAGINATION_SETTINGS.historyLimit });
       setData(result);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to load history");

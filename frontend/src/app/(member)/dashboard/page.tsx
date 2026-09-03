@@ -11,6 +11,7 @@ import { ErrorState } from "@/components/shared/error-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
+import { PAGINATION_SETTINGS } from "@/lib/settings";
 import type { Report, PaginatedResponse } from "@/types";
 
 export default function MemberDashboardPage() {
@@ -22,7 +23,7 @@ export default function MemberDashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await reportsApi.getMyReports({ page: 1, limit: 10 });
+      const result = await reportsApi.getMyReports({ page: PAGINATION_SETTINGS.defaultPage, limit: PAGINATION_SETTINGS.dashboardLimit });
       setData(result);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to load reports");

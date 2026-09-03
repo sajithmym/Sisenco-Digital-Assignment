@@ -5,10 +5,9 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../database/prisma.service';
-import { AUTH_CONSTANTS } from '../common/constants';
+import { AUTH_SETTINGS } from '../settings';
 import { RegisterDto } from './dto';
 import { UserRole } from '../common/enums';
 
@@ -17,7 +16,6 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private configService: ConfigService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -31,7 +29,7 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(
       dto.password,
-      AUTH_CONSTANTS.PASSWORD_HASH_ROUNDS,
+      AUTH_SETTINGS.passwordHashRounds,
     );
 
     const user = await this.prisma.user.create({
@@ -149,22 +147,16 @@ export class AuthService {
     return user;
   }
 
-  private async generateTokens(userId: string, email: string, role: UserRole) {
+  private async generateTokens(userId: string, email: string, role: string) {
     const payload = { sub: userId, email, role };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        expiresIn: this.configService.get<string>(
-          'JWT_ACCESS_EXPIRES_IN',
-          AUTH_CONSTANTS.ACCESS_TOKEN_EXPIRY,
-        ),
+        expiresIn: AUTH_SETTINGS.jwtAccessExpiresIn,
       }),
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-        expiresIn: this.configService.get<string>(
-          'JWT_REFRESH_EXPIRES_IN',
-          AUTH_CONSTANTS.REFRESH_TOKEN_EXPIRY,
-        ),
+        secret: AUTH_SETTINGS.jwtRefreshSecret,
+        expiresIn: AUTH_SETTINGS.jwtRefreshExpiresIn,
       }),
     ]);
 
@@ -172,7 +164,7 @@ export class AuthService {
   }
 
   private async storeRefreshToken(userId: string, token: string) {
-    const expiresInDays = AUTH_CONSTANTS.REFRESH_TOKEN_EXPIRY_DAYS;
+    const expiresInDays = AUTH_SETTINGS.jwtRefreshExpiresInDays;
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 

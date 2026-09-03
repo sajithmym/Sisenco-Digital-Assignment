@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AUTH_SETTINGS } from "@/lib/settings";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,8 +32,8 @@ export default function LoginPage() {
 
     try {
       const response = await authApi.login(data);
-      localStorage.setItem("accessToken", response.accessToken);
-      localStorage.setItem("refreshToken", response.refreshToken);
+      localStorage.setItem(AUTH_SETTINGS.accessTokenKey, response.accessToken);
+      localStorage.setItem(AUTH_SETTINGS.refreshTokenKey, response.refreshToken);
 
       if (response.user.role === "MANAGER" || response.user.role === "ADMIN") {
         router.push("/manager/dashboard");

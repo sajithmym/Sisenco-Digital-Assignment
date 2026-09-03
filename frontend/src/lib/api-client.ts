@@ -1,7 +1,8 @@
 import axios from "axios";
+import { API_SETTINGS, AUTH_SETTINGS } from "@/lib/settings";
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1",
+  baseURL: API_SETTINGS.baseUrl,
   headers: {
     "Content-Type": "application/json",
   },
@@ -11,7 +12,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem("accessToken");
+      const token = localStorage.getItem(AUTH_SETTINGS.accessTokenKey);
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -31,22 +32,22 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem("refreshToken");
+        const refreshToken = localStorage.getItem(AUTH_SETTINGS.refreshTokenKey);
         if (refreshToken) {
           const { data } = await axios.post(
             `${apiClient.defaults.baseURL}/auth/refresh`,
             { refreshToken }
           );
 
-          localStorage.setItem("accessToken", data.accessToken);
-          localStorage.setItem("refreshToken", data.refreshToken);
+          localStorage.setItem(AUTH_SETTINGS.accessTokenKey, data.accessToken);
+          localStorage.setItem(AUTH_SETTINGS.refreshTokenKey, data.refreshToken);
 
           originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        localStorage.removeItem(AUTH_SETTINGS.accessTokenKey);
+        localStorage.removeItem(AUTH_SETTINGS.refreshTokenKey);
         window.location.href = "/login";
         return Promise.reject(refreshError);
       }

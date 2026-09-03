@@ -31,7 +31,7 @@ export class ReportWorkflowService {
     if (report.userId !== userId) throw new ForbiddenException('Not your report');
 
     const editableStatuses = [ReportStatus.DRAFT, ReportStatus.NEEDS_CORRECTION];
-    if (!editableStatuses.includes(report.status)) {
+    if (!editableStatuses.includes(report.status as ReportStatus)) {
       throw new BadRequestException(`Cannot submit report in ${report.status} status`);
     }
 

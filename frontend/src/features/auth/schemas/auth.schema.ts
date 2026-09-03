@@ -1,14 +1,15 @@
 import { z } from "zod";
+import { VALIDATION_SETTINGS } from "@/lib/settings";
 
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string().min(VALIDATION_SETTINGS.password.min, `Password must be at least ${VALIDATION_SETTINGS.password.min} characters`),
 });
 
 export const registerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters").max(100),
+  name: z.string().min(VALIDATION_SETTINGS.name.min, `Name must be at least ${VALIDATION_SETTINGS.name.min} characters`).max(VALIDATION_SETTINGS.name.max),
   email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string().min(VALIDATION_SETTINGS.password.min, `Password must be at least ${VALIDATION_SETTINGS.password.min} characters`),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
