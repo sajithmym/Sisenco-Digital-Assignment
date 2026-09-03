@@ -50,5 +50,6 @@ This folder contains the implementation plan for the **Weekly Report Generator &
 18. `18-readme-er-diagram-presentation-video.md`
 19. `19-live-coding-preparation.md`
 20. `20-definition-of-done.md`
+21. `21-database-setup-guide.md`
 
 Work through the files in order.
