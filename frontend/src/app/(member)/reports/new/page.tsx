@@ -8,10 +8,10 @@ import { reportsApi } from "@/services/reports.api";
 import { reportFormSchema, type ReportFormData } from "@/features/reports/schemas/report.schema";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export default function NewReportPage() {
   const router = useRouter();
@@ -21,6 +21,8 @@ export default function NewReportPage() {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<ReportFormData>({
     resolver: zodResolver(reportFormSchema),
@@ -67,15 +69,23 @@ export default function NewReportPage() {
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="weekStart">Week Start</Label>
-              <Input id="weekStart" type="date" {...register("weekStart")} />
+              <Label>Week Start</Label>
+              <DatePicker
+                value={watch("weekStart")}
+                onChange={(date) => setValue("weekStart", date || "")}
+                placeholder="Select week start"
+              />
               {errors.weekStart && (
                 <p className="text-sm text-destructive">{errors.weekStart.message}</p>
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="weekEnd">Week End</Label>
-              <Input id="weekEnd" type="date" {...register("weekEnd")} />
+              <Label>Week End</Label>
+              <DatePicker
+                value={watch("weekEnd")}
+                onChange={(date) => setValue("weekEnd", date || "")}
+                placeholder="Select week end"
+              />
               {errors.weekEnd && (
                 <p className="text-sm text-destructive">{errors.weekEnd.message}</p>
               )}

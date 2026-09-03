@@ -10,8 +10,8 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectContent,
@@ -90,18 +90,18 @@ export default function ManagerReportsPage() {
             </div>
             <div className="space-y-2">
               <Label>Week Start</Label>
-              <Input
-                type="date"
+              <DatePicker
                 value={filters.weekStart}
-                onChange={(e) => setFilters({ ...filters, weekStart: e.target.value })}
+                onChange={(date) => setFilters({ ...filters, weekStart: date || "" })}
+                placeholder="From date"
               />
             </div>
             <div className="space-y-2">
               <Label>Week End</Label>
-              <Input
-                type="date"
+              <DatePicker
                 value={filters.weekEnd}
-                onChange={(e) => setFilters({ ...filters, weekEnd: e.target.value })}
+                onChange={(date) => setFilters({ ...filters, weekEnd: date || "" })}
+                placeholder="To date"
               />
             </div>
             <Button onClick={fetchReports}>Apply Filters</Button>
