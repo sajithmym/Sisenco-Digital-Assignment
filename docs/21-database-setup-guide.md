@@ -107,42 +107,62 @@ NODE_ENV=development
 
 ---
 
-## Step 4 — Generate Prisma Client
+## Quick Setup (One Command)
 
-From the `backend/` directory:
+From the `backend/` directory, run:
+
+```bash
+npm run db:init
+```
+
+This single command will:
+1. Read database config from `.env`
+2. Create the database if it doesn't exist
+3. Generate the Prisma client
+4. Run all migrations (create tables)
+5. Seed the database with demo data
+
+Expected output:
+
+```text
+╔══════════════════════════════════════════╗
+║   Weekly Report — Database Init Script   ║
+╚══════════════════════════════════════════╝
+
+▶ Loading .env ...
+  Host: localhost
+  Port: 5432
+  User: postgres
+  Database: weekly_report_db
+
+▶ Creating database ...
+✅ Create database — done
+✅ Generate Prisma Client — done
+✅ Run database migrations — done
+✅ Seed database — done
+
+╔══════════════════════════════════════════╗
+║         🎉 Database initialized!         ║
+╚══════════════════════════════════════════╝
+```
+
+---
+
+## Manual Steps (if needed)
+
+### Step 4 — Generate Prisma Client
 
 ```bash
 npx prisma generate
 ```
 
-This reads `prisma/schema.prisma` and generates the TypeScript client in `node_modules/@prisma/client`.
-
-Expected output:
-
-```text
-✔ Generated Prisma Client (v5.22.0) to ./node_modules/@prisma/client
-```
-
----
-
-## Step 5 — Run Database Migrations
-
-This creates all tables defined in `prisma/schema.prisma`:
+### Step 5 — Run Database Migrations
 
 ```bash
 npx prisma migrate dev --name init
 ```
 
-### What This Does
-
-1. Compares `schema.prisma` with the current database state.
-2. Generates a SQL migration file in `prisma/migrations/`.
-3. Applies the migration to the database.
-4. Re-generates the Prisma client.
-
-### Tables Created
-
-After migration, the database will contain these 12 tables:
+### Tables Created (12)
 
 | Table | Purpose |
 |-------|---------|
@@ -159,17 +179,7 @@ After migration, the database will contain these 12 tables:
 | `reviews` | Manager review records |
 | `refresh_tokens` | JWT refresh tokens |
 
-### Verify Tables Exist
-
-```bash
-PGPASSWORD=postgres psql -U postgres -h localhost -p 5432 -d weekly_report_db -c "\dt"
-```
-
----
-
-## Step 6 — Seed the Database
-
-Populate the database with demo data:
+### Step 6 — Seed the Database
 
 ```bash
 npx prisma db seed
@@ -289,16 +299,31 @@ curl -X POST http://localhost:5000/api/v1/auth/login \
 
 ---
 
+## Available Database Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run db:init` | Full setup: create DB + tables + seed |
+| `npm run db:reset` | Reset migrations and re-seed |
+| `npm run db:fresh` | Alias for `db:init` |
+| `npm run seed` | Seed only |
+| `npm run prisma:studio` | Open Prisma Studio |
+| `npm run prisma:generate` | Regenerate Prisma client |
+| `npm run prisma:migrate` | Run pending migrations |
+
 ## Resetting the Database
 
 To start fresh:
 
 ```bash
-# Reset all tables and re-run migrations
-npx prisma migrate reset
+npm run db:reset
+```
 
-# Re-seed
-npx prisma db seed
+Or manually:
+
+```bash
+npx prisma migrate reset --force
+npm run seed
 ```
 
 ---
