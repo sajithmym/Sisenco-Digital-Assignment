@@ -2,140 +2,110 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Filter, RotateCcw } from "lucide-react";
 import { managerApi } from "@/services/manager.api";
+import { usersApi } from "@/services/users.api";
+import { projectsApi } from "@/services/projects.api";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
-import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
-import { REPORT_STATUSES } from "@/constants";
+import { REPORT_STATUSES, REPORT_STATUS_LABELS } from "@/constants";
 import { PAGINATION_SETTINGS } from "@/lib/settings";
-import type { Report, PaginatedResponse } from "@/types";
+import type { PaginatedResponse, Project, Report, User } from "@/types";
+
+type ReportFilters = {
+  userId: string;
+  projectId: string;
+  status: string;
+  weekStart: string;
+  weekEnd: string;
+};
+
+const DEFAULT_FILTERS: ReportFilters = { userId: "", projectId: "", status: "", weekStart: "", weekEnd: "" };
 
 export default function ManagerReportsPage() {
   const [data, setData] = useState<PaginatedResponse<Report> | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
+  const [page, setPage] = useState(PAGINATION_SETTINGS.defaultPage);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState({
-    status: "",
-    weekStart: "",
-    weekEnd: "",
-  });
+  const [filterError, setFilterError] = useState<string | null>(null);
 
   const fetchReports = async () => {
     setLoading(true);
     setError(null);
     try {
-      const params: any = { page: PAGINATION_SETTINGS.defaultPage, limit: PAGINATION_SETTINGS.managerListLimit };
-      if (filters.status) params.status = filters.status;
-      if (filters.weekStart) params.weekStart = filters.weekStart;
-      if (filters.weekEnd) params.weekEnd = filters.weekEnd;
-
-      const result = await managerApi.getTeamReports(params);
+      const result = await managerApi.getTeamReports({
+        page,
+        limit: PAGINATION_SETTINGS.defaultLimit,
+        userId: appliedFilters.userId || undefined,
+        projectId: appliedFilters.projectId || undefined,
+        status: appliedFilters.status || undefined,
+        weekStart: appliedFilters.weekStart || undefined,
+        weekEnd: appliedFilters.weekEnd || undefined,
+      });
       setData(result);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to load reports");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: any) { setError(err.response?.data?.message || "Failed to load reports"); } finally { setLoading(false); }
   };
 
+  useEffect(() => { fetchReports(); }, [page, appliedFilters]);
   useEffect(() => {
-    fetchReports();
+    Promise.all([usersApi.getAll({ page: 1, limit: 100 }), projectsApi.getAll({ page: 1, limit: 100 })])
+      .then(([userResult, projectResult]) => { setUsers(userResult.data); setProjects(projectResult.data); })
+      .catch(() => undefined);
   }, []);
 
+  const applyFilters = () => {
+    if (filters.weekStart && filters.weekEnd && new Date(filters.weekEnd) < new Date(filters.weekStart)) {
+      setFilterError("Week end must be after or equal to week start.");
+      return;
+    }
+    setFilterError(null);
+    setPage(PAGINATION_SETTINGS.defaultPage);
+    setAppliedFilters(filters);
+  };
+
+  const resetFilters = () => {
+    setFilterError(null);
+    setFilters(DEFAULT_FILTERS);
+    setAppliedFilters(DEFAULT_FILTERS);
+    setPage(PAGINATION_SETTINGS.defaultPage);
+  };
+
   const reports = data?.data || [];
+  const hasFilters = Object.values(filters).some(Boolean);
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Team Reports"
-        description="Review and manage team weekly reports"
-      />
+  return <div className="space-y-6">
+    <PageHeader title="Team Reports" description="Find, review, and track reports across every team member and project." />
+    <Card><CardContent className="grid gap-4 p-4 lg:grid-cols-3 xl:grid-cols-6 xl:items-end">
+      <FilterField label="Team member"><Select value={filters.userId || "ALL"} onValueChange={(userId) => setFilters({ ...filters, userId: userId === "ALL" ? "" : userId })}><SelectTrigger><SelectValue placeholder="All members" /></SelectTrigger><SelectContent><SelectItem value="ALL">All members</SelectItem>{users.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></FilterField>
+      <FilterField label="Project"><Select value={filters.projectId || "ALL"} onValueChange={(projectId) => setFilters({ ...filters, projectId: projectId === "ALL" ? "" : projectId })}><SelectTrigger><SelectValue placeholder="All projects" /></SelectTrigger><SelectContent><SelectItem value="ALL">All projects</SelectItem>{projects.map((project) => <SelectItem key={project.id} value={project.id}>{project.name}{project.isActive ? "" : " (archived)"}</SelectItem>)}</SelectContent></Select></FilterField>
+      <FilterField label="Report status"><Select value={filters.status || "ALL"} onValueChange={(status) => setFilters({ ...filters, status: status === "ALL" ? "" : status })}><SelectTrigger><SelectValue placeholder="All statuses" /></SelectTrigger><SelectContent><SelectItem value="ALL">All statuses</SelectItem>{Object.values(REPORT_STATUSES).map((status) => <SelectItem key={status} value={status}>{REPORT_STATUS_LABELS[status]}</SelectItem>)}</SelectContent></Select></FilterField>
+      <FilterField label="Week start"><DatePicker value={filters.weekStart} onChange={(weekStart) => setFilters({ ...filters, weekStart: weekStart || "" })} placeholder="From date" /></FilterField>
+      <FilterField label="Week end"><DatePicker value={filters.weekEnd} onChange={(weekEnd) => setFilters({ ...filters, weekEnd: weekEnd || "" })} placeholder="To date" /></FilterField>
+      <div className="flex gap-2"><Button className="flex-1" onClick={applyFilters}><Filter className="mr-2 h-4 w-4" />Apply</Button><Button variant="outline" size="icon" onClick={resetFilters} disabled={!hasFilters} aria-label="Reset filters"><RotateCcw className="h-4 w-4" /></Button></div>
+      {filterError && <p className="text-sm text-destructive lg:col-span-3 xl:col-span-6">{filterError}</p>}
+    </CardContent></Card>
+    {loading ? <LoadingState message="Loading team reports..." /> : error ? <ErrorState message={error} onRetry={fetchReports} /> : reports.length === 0 ? <EmptyState title="No reports found" description={hasFilters ? "No reports match the selected filters. Try widening your search." : "No team reports have been created yet."} action={hasFilters ? <Button variant="outline" onClick={resetFilters}>Clear filters</Button> : undefined} /> : <>
+      <div className="flex items-center justify-between text-sm text-muted-foreground"><span>{data?.meta.total || 0} report{data?.meta.total === 1 ? "" : "s"} found</span><span>Page {data?.meta.page} of {data?.meta.totalPages}</span></div>
+      <div className="space-y-3">{reports.map((report) => <Link key={report.id} href={`/manager/reports/${report.id}`} className="block"><Card className="cursor-pointer"><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{report.user?.name || "Unknown member"}</p>{report.latestVersionNumber > 0 && <Badge variant="secondary">Version {report.latestVersionNumber}</Badge>}</div><p className="mt-1 text-sm text-muted-foreground">Week of {formatDate(report.weekStart)} — {formatDate(report.weekEnd)} · {report.project?.name || "No project"}</p></div><StatusBadge status={report.status} /></CardContent></Card></Link>)}</div>
+      {(data?.meta.totalPages || 0) > 1 && <div className="flex items-center justify-between border-t pt-4"><Button variant="outline" onClick={() => setPage((current) => current - 1)} disabled={page <= 1}>Previous</Button><span className="text-sm text-muted-foreground">Page {data?.meta.page} of {data?.meta.totalPages}</span><Button variant="outline" onClick={() => setPage((current) => current + 1)} disabled={page >= (data?.meta.totalPages || 1)}>Next</Button></div>}
+    </>}
+  </div>;
+}
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 items-end">
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select
-                value={filters.status}
-                onValueChange={(value) => setFilters({ ...filters, status: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {Object.values(REPORT_STATUSES).map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {status.replace(/_/g, " ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Week Start</Label>
-              <DatePicker
-                value={filters.weekStart}
-                onChange={(date) => setFilters({ ...filters, weekStart: date || "" })}
-                placeholder="From date"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Week End</Label>
-              <DatePicker
-                value={filters.weekEnd}
-                onChange={(date) => setFilters({ ...filters, weekEnd: date || "" })}
-                placeholder="To date"
-              />
-            </div>
-            <Button onClick={fetchReports}>Apply Filters</Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Reports List */}
-      {loading ? (
-        <LoadingState />
-      ) : error ? (
-        <ErrorState message={error} onRetry={fetchReports} />
-      ) : reports.length === 0 ? (
-        <EmptyState title="No reports found" description="No reports match your filters." />
-      ) : (
-        <div className="space-y-3">
-          {reports.map((report) => (
-            <Link key={report.id} href={`/manager/reports/${report.id}`}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <div>
-                    <p className="font-medium">{report.user?.name || "Unknown"}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Week of {formatDate(report.weekStart)} — {formatDate(report.weekEnd)} •{" "}
-                      {report.project?.name || "No project"}
-                    </p>
-                  </div>
-                  <StatusBadge status={report.status} />
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div className="space-y-2"><Label>{label}</Label>{children}</div>;
 }
