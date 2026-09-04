@@ -36,8 +36,9 @@ import type {
   TimeDistribution,
   ActivityItem,
 } from "@/types";
+import { CHART_SETTINGS } from "@/lib/settings";
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
+const COLORS = CHART_SETTINGS.palette;
 
 export default function ManagerDashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -135,7 +136,7 @@ export default function ManagerDashboardPage() {
                     labelLine={false}
                     label={({ status, count }) => `${status}: ${count}`}
                     outerRadius={100}
-                    fill="#8884d8"
+                    fill={CHART_SETTINGS.projectReports}
                     dataKey="count"
                   >
                     {statusDist.map((entry, index) => (
@@ -166,8 +167,8 @@ export default function ManagerDashboardPage() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="total" fill="#8884d8" name="Total" />
-                  <Bar dataKey="completed" fill="#82ca9d" name="Completed" />
+                  <Bar dataKey="total" fill={CHART_SETTINGS.taskTotal} name="Total" />
+                  <Bar dataKey="completed" fill={CHART_SETTINGS.taskCompleted} name="Completed" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -190,8 +191,8 @@ export default function ManagerDashboardPage() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="reportCount" fill="#8884d8" name="Reports" />
-                  <Bar dataKey="totalMinutes" fill="#FFBB28" name="Minutes" />
+                  <Bar dataKey="reportCount" fill={CHART_SETTINGS.projectReports} name="Reports" />
+                  <Bar dataKey="totalMinutes" fill={CHART_SETTINGS.projectMinutes} name="Minutes" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -218,7 +219,7 @@ export default function ManagerDashboardPage() {
                       `${type}: ${formatMinutes(totalMinutes)}`
                     }
                     outerRadius={100}
-                    fill="#8884d8"
+                    fill={CHART_SETTINGS.projectReports}
                     dataKey="totalMinutes"
                   >
                     {timeDist.map((entry, index) => (

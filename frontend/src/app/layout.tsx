@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
+import { APP_SETTINGS, THEME_CSS_VARIABLES } from "@/lib/settings";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Weekly Report Generator",
-  description: "Internal team weekly report and dashboard application",
+  title: APP_SETTINGS.name,
+  description: APP_SETTINGS.description,
 };
 
 export default function RootLayout({
@@ -17,7 +18,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}><ToastProvider>{children}</ToastProvider></body>
+      <body className={inter.className} style={THEME_CSS_VARIABLES as React.CSSProperties}>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

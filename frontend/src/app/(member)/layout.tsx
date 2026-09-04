@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FileText, LayoutDashboard, History, LogOut, Menu, X } from "lucide-react";
 import { authApi } from "@/services/auth.api";
-import { AUTH_SETTINGS } from "@/lib/settings";
+import { APP_SETTINGS, AUTH_SETTINGS, UI_SETTINGS } from "@/lib/settings";
 import type { User } from "@/types";
 import { ConfirmationDialog } from "@/components/shared/confirmation-dialog";
 
@@ -68,7 +68,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
           >
             {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
-          <h2 className="text-sm font-bold">Weekly Reports</h2>
+          <h2 className="text-sm font-bold">{APP_SETTINGS.memberPanelTitle}</h2>
         </div>
         {user && (
           <p className="text-xs text-muted-foreground">{user.name}</p>
@@ -89,10 +89,11 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
           "fixed inset-y-0 left-0 z-40 w-64 border-r bg-card transition-transform duration-300 ease-in-out md:sticky md:top-0 md:h-screen md:shrink-0 md:translate-x-0 md:transition-none",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
+        style={{ width: UI_SETTINGS.layout.sidebarWidth }}
       >
         <div className="flex h-full flex-col">
           <div className="p-6 hidden md:block">
-            <h2 className="text-lg font-bold">Weekly Reports</h2>
+            <h2 className="text-lg font-bold">{APP_SETTINGS.memberPanelTitle}</h2>
             {user && (
               <p className="text-sm text-muted-foreground mt-1">{user.name}</p>
             )}

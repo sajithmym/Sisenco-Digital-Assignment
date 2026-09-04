@@ -4,6 +4,7 @@ import * as React from "react";
 import * as ToastPrimitive from "@radix-ui/react-toast";
 import { CheckCircle2, Info, X, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UI_SETTINGS } from "@/lib/settings";
 
 type ToastVariant = "success" | "error" | "info";
 
@@ -40,9 +41,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ToastContext.Provider value={{ toast }}>
-      <ToastPrimitive.Provider duration={5000} swipeDirection="right">
+      <ToastPrimitive.Provider duration={UI_SETTINGS.toast.durationMs} swipeDirection="right">
         {children}
-        {toasts.map((item) => {
+        {toasts.slice(-UI_SETTINGS.toast.maxVisible).map((item) => {
           const style = toastStyles[item.variant];
           const Icon = style.icon;
           return (
