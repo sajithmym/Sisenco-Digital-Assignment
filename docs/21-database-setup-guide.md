@@ -69,7 +69,7 @@ DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_NAME=weekly_report_db
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/weekly_report_db
+DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
 ```
 
 ### Option B — Direct URL
@@ -91,7 +91,7 @@ DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_NAME=weekly_report_db
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/weekly_report_db
+DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
 
 # ─── JWT / Auth ─────────────────────────────────────────────
 JWT_ACCESS_SECRET=your-access-secret-key-change-in-production
@@ -362,7 +362,7 @@ sudo lsof -i :5432
 
 The `.env` uses individual database fields (`DB_HOST`, `DB_PORT`, etc.) for clarity.
 The `settings.ts` file builds the full `DATABASE_URL` from these fields as a fallback.
-Prisma itself requires `DATABASE_URL` as a single string, so it must be set explicitly.
+Prisma itself requires `DATABASE_URL` as a single string. In this project, it is set once and expanded from the individual database fields above.
 
 ### Settings Hierarchy
 

@@ -70,7 +70,7 @@ DB_PASSWORD=postgres          # ← change to your PostgreSQL password
 DB_NAME=weekly_report_db
 
 # REQUIRED by Prisma — keep in sync with the fields above
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/weekly_report_db
+DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
 
 # ─── JWT / Auth ─────────────────────────────────────────────
 JWT_ACCESS_SECRET=change-me-to-a-random-access-secret   # ← change!
@@ -79,7 +79,7 @@ JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 ```
 
-> ⚠️ **Important:** if your PostgreSQL user/password differ, update `DB_PASSWORD` **and** the password inside `DATABASE_URL` — Prisma only reads `DATABASE_URL`.
+> **Important:** Prisma expands `DATABASE_URL` from the individual values above. Update each database field once; if `DB_PASSWORD` contains URL-reserved characters such as `@`, `:`, `/`, or `#`, URL-encode that value first.
 
 ### 2.4 Generate JWT secrets
 
