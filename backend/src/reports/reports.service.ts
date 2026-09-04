@@ -8,13 +8,17 @@ import { PrismaService } from '../database/prisma.service';
 import { CreateReportDto, UpdateReportDto, ReportFilterDto } from './dto';
 import { PaginatedResponse } from '../common/dto';
 import { ReportStatus, UserRole } from '../common/enums';
-import { PAGINATION_SETTINGS } from '../settings';
 
 @Injectable()
 export class ReportsService {
   constructor(private prisma: PrismaService) {}
 
   async create(userId: string, dto: CreateReportDto) {
+    if (new Date(dto.weekEnd) < new Date(dto.weekStart)) {
+      throw new BadRequestException('Week end must be after or equal to week start');
+    }
+    this.ensureSingleKeyItem(dto.blockers, 'isKeyIssue', 'Only one blocker can be marked as the key issue');
+    this.ensureSingleKeyItem(dto.achievements, 'isKeyAchievement', 'Only one achievement can be marked as the key achievement');
     // Validate the referenced project up-front so the UI gets a clear error
     // instead of a generic foreign-key failure from the database.
     if (dto.projectId) {
@@ -35,7 +39,7 @@ export class ReportsService {
     return this.prisma.report.create({
       data: {
         userId,
-        projectId: dto.projectId,
+        projectId: dto.projectId || undefined,
         weekStart: new Date(dto.weekStart),
         weekEnd: new Date(dto.weekEnd),
         notes: dto.notes,
@@ -171,18 +175,34 @@ export class ReportsService {
       throw new ForbiddenException('Report is not editable in current status');
     }
 
-    // Update report and related data
+    if (dto.weekStart && dto.weekEnd && new Date(dto.weekEnd) < new Date(dto.weekStart)) {
+      throw new BadRequestException('Week end must be after or equal to week start');
+    }
+    if (dto.projectId) {
+      const project = await this.prisma.project.findUnique({ where: { id: dto.projectId }, select: { isActive: true } });
+      if (!project) throw new NotFoundException('Project not found');
+      if (!project.isActive) throw new BadRequestException('Project is deactivated and cannot be used');
+    }
+    this.ensureSingleKeyItem(dto.blockers, 'isKeyIssue', 'Only one blocker can be marked as the key issue');
+    this.ensureSingleKeyItem(dto.achievements, 'isKeyAchievement', 'Only one achievement can be marked as the key achievement');
+
     return this.prisma.report.update({
       where: { id },
       data: {
-        projectId: dto.projectId,
+        projectId: dto.projectId === undefined ? undefined : dto.projectId || null,
         weekStart: dto.weekStart ? new Date(dto.weekStart) : undefined,
         weekEnd: dto.weekEnd ? new Date(dto.weekEnd) : undefined,
         notes: dto.notes,
+        tasks: dto.tasks === undefined ? undefined : { deleteMany: {}, create: dto.tasks.map((task) => ({ taskName: task.taskName, priority: (task.priority as any) || 'MEDIUM', plannedPercentage: task.plannedPercentage || 0, actualPercentage: task.actualPercentage || 0, status: (task.status as any) || 'TODO', plannedMinutes: task.plannedMinutes || 0, actualMinutes: task.actualMinutes || 0, deliverable: task.deliverable })) },
+        nextWeekTasks: dto.nextWeekTasks === undefined ? undefined : { deleteMany: {}, create: dto.nextWeekTasks.map((task, index) => ({ description: task.description, sortOrder: task.sortOrder ?? index })) },
+        blockers: dto.blockers === undefined ? undefined : { deleteMany: {}, create: dto.blockers.map((blocker) => ({ description: blocker.description, isKeyIssue: blocker.isKeyIssue || false, isResolved: blocker.isResolved || false })) },
+        achievements: dto.achievements === undefined ? undefined : { deleteMany: {}, create: dto.achievements.map((achievement) => ({ description: achievement.description, isKeyAchievement: achievement.isKeyAchievement || false })) },
+        workHours: dto.workHours === undefined ? undefined : { deleteMany: {}, create: dto.workHours.map((workHour) => ({ type: workHour.type as any, minutes: workHour.minutes })) },
       },
       include: {
+        project: true,
         tasks: true,
-        nextWeekTasks: true,
+        nextWeekTasks: { orderBy: { sortOrder: 'asc' } },
         blockers: true,
         achievements: true,
         workHours: true,
@@ -218,5 +238,15 @@ export class ReportsService {
     ]);
 
     return new PaginatedResponse(reports, total, page, limit);
+  }
+
+  private ensureSingleKeyItem<T extends Record<string, unknown>>(
+    items: T[] | undefined,
+    key: keyof T,
+    message: string,
+  ) {
+    if ((items?.filter((item) => item[key] === true).length || 0) > 1) {
+      throw new BadRequestException(message);
+    }
   }
 }

@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { ReportWorkflowService } from './report-workflow.service';
-import { CreateReportDto, UpdateReportDto, ReportFilterDto } from './dto';
+import { CreateReportDto, UpdateReportDto, ReportFilterDto, RequestChangesDto } from './dto';
 import { JwtAuthGuard, RolesGuard } from '../common/guards';
 import { Roles } from '../common/decorators';
 import { UserRole } from '../common/enums';
@@ -90,8 +90,9 @@ export class ReportsController {
   }
 
   @Get('reports/:id/versions')
-  async getVersionHistory(@Param('id') id: string) {
+  async getVersionHistory(@Param('id') id: string, @Req() req: RequestWithUser) {
     try {
+      await this.reportsService.findById(id, req.user.sub, req.user.role);
       const data = await this.workflowService.getVersionHistory(id);
       return ApiResponse.success(data, 'Version history fetched successfully');
     } catch (error) {
@@ -129,10 +130,10 @@ export class ReportsController {
   async requestChanges(
     @Param('id') id: string,
     @Req() req: RequestWithUser,
-    @Body('comment') comment: string,
+    @Body() dto: RequestChangesDto,
   ) {
     try {
-      const data = await this.workflowService.requestChanges(id, req.user.sub, comment);
+      const data = await this.workflowService.requestChanges(id, req.user.sub, dto.comment);
       return ApiResponse.success(data, 'Changes requested successfully');
     } catch (error) {
       throw error;

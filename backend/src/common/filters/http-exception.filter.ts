@@ -158,7 +158,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       default:
         return {
           status: HttpStatus.BAD_REQUEST,
-          message: `Database error: ${exception.message}`,
+          message:
+            SERVER_SETTINGS.nodeEnv === 'production'
+              ? 'Unable to process the request'
+              : `Database error: ${exception.message}`,
           code: 'DATABASE_ERROR',
         };
     }

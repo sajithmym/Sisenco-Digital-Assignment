@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 import { PAGINATION_SETTINGS } from "@/lib/settings";
 import type { Project, PaginatedResponse } from "@/types";
 
@@ -29,6 +30,7 @@ export default function ManagerProjectsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newProject, setNewProject] = useState({ name: "", description: "" });
   const [creating, setCreating] = useState(false);
+  const { toast } = useToast();
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -56,7 +58,7 @@ export default function ManagerProjectsPage() {
       setDialogOpen(false);
       fetchProjects();
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to create project");
+      toast({ variant: "error", title: "Could not create project", description: err.response?.data?.message || "Please try again." });
     } finally {
       setCreating(false);
     }

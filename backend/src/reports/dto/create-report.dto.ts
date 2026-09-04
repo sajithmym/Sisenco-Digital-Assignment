@@ -10,11 +10,12 @@ import {
   IsEnum,
   MaxLength,
   IsBoolean,
+  IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class CreateTaskDto {
-  @IsString()
+  @IsUUID()
   @MaxLength(500)
   taskName: string;
 

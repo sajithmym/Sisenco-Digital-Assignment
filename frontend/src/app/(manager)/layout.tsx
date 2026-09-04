@@ -104,7 +104,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
           </div>
           <div className="p-6 md:hidden" />
           <nav className="flex-1 px-4 space-y-1">
-            {navItems.map((item) => {
+            {navItems.filter((item) => item.href !== "/manager/users" || user?.role === "ADMIN" || user?.role === "MANAGER").map((item) => {
               const Icon = item.icon;
               return (
                 <Link
@@ -118,7 +118,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
                   )}
                 >
                   <Icon className="h-4 w-4" />
-                  {item.label}
+                  {item.href === "/manager/users" && user?.role === "MANAGER" ? "Team Members" : item.label}
                 </Link>
               );
             })}
