@@ -12,7 +12,7 @@ export const reportsApi = {
     limit?: number;
   }): Promise<PaginatedResponse<Report>> {
     const response = await apiClient.get("/reports/my", { params });
-    return response.data.data;
+    return { data: response.data.data, meta: response.data.meta };
   },
 
   async getById(id: string): Promise<Report> {

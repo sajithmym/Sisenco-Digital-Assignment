@@ -4,7 +4,7 @@ import type { User, PaginatedResponse } from "@/types";
 export const usersApi = {
   async getAll(params?: { page?: number; limit?: number }): Promise<PaginatedResponse<User>> {
     const response = await apiClient.get("/users", { params });
-    return response.data.data;
+    return { data: response.data.data, meta: response.data.meta };
   },
 
   async getById(id: string): Promise<User> {

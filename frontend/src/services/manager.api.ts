@@ -22,7 +22,7 @@ export const managerApi = {
     weekEnd?: string;
   }): Promise<PaginatedResponse<Report>> {
     const response = await apiClient.get("/manager/reports", { params });
-    return response.data.data;
+    return { data: response.data.data, meta: response.data.meta };
   },
 
   async getTeamReportById(id: string): Promise<Report> {
