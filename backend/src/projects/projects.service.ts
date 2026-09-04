@@ -1,23 +1,30 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { CreateProjectDto, UpdateProjectDto } from './dto';
-import { PaginationDto, PaginatedResponse } from '../common/dto';
+import { CreateProjectDto, UpdateProjectDto, ProjectFilterDto } from './dto';
+import { PaginatedResponse } from '../common/dto';
 
 @Injectable()
 export class ProjectsService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(pagination: PaginationDto) {
-    const { page, limit } = pagination;
+  async findAll(filters: ProjectFilterDto) {
+    const { page, limit, search, isActive } = filters;
     const skip = (page - 1) * limit;
+    const where = {
+      ...(isActive === undefined ? {} : { isActive }),
+      ...(search?.trim()
+        ? { name: { contains: search.trim(), mode: 'insensitive' as const } }
+        : {}),
+    };
 
     const [projects, total] = await Promise.all([
       this.prisma.project.findMany({
+        where,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.project.count(),
+      this.prisma.project.count({ where }),
     ]);
 
     return new PaginatedResponse(projects, total, page, limit);

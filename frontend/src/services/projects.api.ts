@@ -1,8 +1,17 @@
 import apiClient from "@/lib/api-client";
 import type { Project, PaginatedResponse } from "@/types";
 
+export type CreateProjectPayload = {
+  name: string;
+  description?: string;
+};
+
+export type UpdateProjectPayload = Partial<
+  Pick<Project, "name" | "description" | "isActive">
+>;
+
 export const projectsApi = {
-  async getAll(params?: { page?: number; limit?: number }): Promise<PaginatedResponse<Project>> {
+  async getAll(params?: { page?: number; limit?: number; search?: string; isActive?: boolean }): Promise<PaginatedResponse<Project>> {
     const response = await apiClient.get("/projects", { params });
     return { data: response.data.data, meta: response.data.meta };
   },
@@ -12,12 +21,12 @@ export const projectsApi = {
     return response.data.data;
   },
 
-  async create(data: { name: string; description?: string }): Promise<Project> {
+  async create(data: CreateProjectPayload): Promise<Project> {
     const response = await apiClient.post("/projects", data);
     return response.data.data;
   },
 
-  async update(id: string, data: Partial<Project>): Promise<Project> {
+  async update(id: string, data: UpdateProjectPayload): Promise<Project> {
     const response = await apiClient.patch(`/projects/${id}`, data);
     return response.data.data;
   },

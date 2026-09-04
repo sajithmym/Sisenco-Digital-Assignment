@@ -10,11 +10,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
-import { CreateProjectDto, UpdateProjectDto } from './dto';
+import { CreateProjectDto, UpdateProjectDto, ProjectFilterDto } from './dto';
 import { JwtAuthGuard, RolesGuard } from '../common/guards';
 import { Roles } from '../common/decorators';
 import { UserRole } from '../common/enums';
-import { ApiResponse, PaginationDto } from '../common/dto';
+import { ApiResponse } from '../common/dto';
 
 @Controller('projects')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -22,9 +22,9 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Get()
-  async findAll(@Query() pagination: PaginationDto) {
+  async findAll(@Query() filters: ProjectFilterDto) {
     try {
-      const result = await this.projectsService.findAll(pagination);
+      const result = await this.projectsService.findAll(filters);
       return ApiResponse.paginated(result.data, result.meta, 'Projects fetched successfully');
     } catch (error) {
       // Rethrow — GlobalExceptionFilter formats and sends the actual error message.
@@ -65,7 +65,7 @@ export class ProjectsController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async remove(@Param('id') id: string) {
     try {
       const data = await this.projectsService.remove(id);
