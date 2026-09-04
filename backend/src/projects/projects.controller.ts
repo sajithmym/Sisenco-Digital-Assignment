@@ -15,6 +15,7 @@ import { JwtAuthGuard, RolesGuard } from '../common/guards';
 import { Roles } from '../common/decorators';
 import { UserRole } from '../common/enums';
 import { ApiResponse } from '../common/dto';
+import { API_RESPONSE_MESSAGES } from '../settings';
 
 @Controller('projects')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -25,7 +26,7 @@ export class ProjectsController {
   async findAll(@Query() filters: ProjectFilterDto) {
     try {
       const result = await this.projectsService.findAll(filters);
-      return ApiResponse.paginated(result.data, result.meta, 'Projects fetched successfully');
+      return ApiResponse.paginated(result.data, result.meta, API_RESPONSE_MESSAGES.projects.fetched);
     } catch (error) {
       // Rethrow — GlobalExceptionFilter formats and sends the actual error message.
       throw error;
@@ -36,7 +37,7 @@ export class ProjectsController {
   async findById(@Param('id') id: string) {
     try {
       const data = await this.projectsService.findById(id);
-      return ApiResponse.success(data, 'Project fetched successfully');
+      return ApiResponse.success(data, API_RESPONSE_MESSAGES.projects.projectFetched);
     } catch (error) {
       throw error;
     }
@@ -47,7 +48,7 @@ export class ProjectsController {
   async create(@Body() dto: CreateProjectDto) {
     try {
       const data = await this.projectsService.create(dto);
-      return ApiResponse.created(data, 'Project created successfully');
+      return ApiResponse.created(data, API_RESPONSE_MESSAGES.projects.created);
     } catch (error) {
       throw error;
     }
@@ -58,7 +59,7 @@ export class ProjectsController {
   async update(@Param('id') id: string, @Body() dto: UpdateProjectDto) {
     try {
       const data = await this.projectsService.update(id, dto);
-      return ApiResponse.success(data, 'Project updated successfully');
+      return ApiResponse.success(data, API_RESPONSE_MESSAGES.projects.updated);
     } catch (error) {
       throw error;
     }
@@ -69,7 +70,7 @@ export class ProjectsController {
   async remove(@Param('id') id: string) {
     try {
       const data = await this.projectsService.remove(id);
-      return ApiResponse.success(data, 'Project deactivated successfully');
+      return ApiResponse.success(data, API_RESPONSE_MESSAGES.projects.deactivated);
     } catch (error) {
       throw error;
     }

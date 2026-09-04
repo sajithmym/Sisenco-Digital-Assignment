@@ -8,6 +8,7 @@ import { PrismaService } from '../database/prisma.service';
 import { CreateReportDto, UpdateReportDto, ReportFilterDto } from './dto';
 import { PaginatedResponse } from '../common/dto';
 import { ReportStatus, UserRole } from '../common/enums';
+import { REPORT_SETTINGS } from '../settings';
 
 @Injectable()
 export class ReportsService {
@@ -15,10 +16,10 @@ export class ReportsService {
 
   async create(userId: string, dto: CreateReportDto) {
     if (new Date(dto.weekEnd) < new Date(dto.weekStart)) {
-      throw new BadRequestException('Week end must be after or equal to week start');
+      throw new BadRequestException(REPORT_SETTINGS.messages.invalidWeekRange);
     }
-    this.ensureSingleKeyItem(dto.blockers, 'isKeyIssue', 'Only one blocker can be marked as the key issue');
-    this.ensureSingleKeyItem(dto.achievements, 'isKeyAchievement', 'Only one achievement can be marked as the key achievement');
+    this.ensureSingleKeyItem(dto.blockers, 'isKeyIssue', REPORT_SETTINGS.messages.onlyOneKeyIssue);
+    this.ensureSingleKeyItem(dto.achievements, 'isKeyAchievement', REPORT_SETTINGS.messages.onlyOneKeyAchievement);
     // Validate the referenced project up-front so the UI gets a clear error
     // instead of a generic foreign-key failure from the database.
     if (dto.projectId) {
@@ -28,11 +29,11 @@ export class ReportsService {
       });
 
       if (!project) {
-        throw new NotFoundException('Project not found');
+        throw new NotFoundException(REPORT_SETTINGS.messages.projectNotFound);
       }
 
       if (!project.isActive) {
-        throw new BadRequestException('Project is deactivated and cannot be used');
+        throw new BadRequestException(REPORT_SETTINGS.messages.inactiveProject);
       }
     }
 
@@ -48,10 +49,10 @@ export class ReportsService {
           ? {
               create: dto.tasks.map((t) => ({
                 taskName: t.taskName,
-                priority: (t.priority as any) || 'MEDIUM',
+                priority: (t.priority as any) || REPORT_SETTINGS.defaultTaskPriority,
                 plannedPercentage: t.plannedPercentage || 0,
                 actualPercentage: t.actualPercentage || 0,
-                status: (t.status as any) || 'TODO',
+                status: (t.status as any) || REPORT_SETTINGS.defaultTaskStatus,
                 plannedMinutes: t.plannedMinutes || 0,
                 actualMinutes: t.actualMinutes || 0,
                 deliverable: t.deliverable,
@@ -149,12 +150,12 @@ export class ReportsService {
     });
 
     if (!report) {
-      throw new NotFoundException('Report not found');
+      throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
     }
 
     // Ownership check for team members
     if (userRole === UserRole.TEAM_MEMBER && report.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this report');
+      throw new ForbiddenException(REPORT_SETTINGS.messages.reportAccessDenied);
     }
 
     return report;
@@ -164,27 +165,27 @@ export class ReportsService {
     const report = await this.prisma.report.findUnique({ where: { id } });
 
     if (!report) {
-      throw new NotFoundException('Report not found');
+      throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
     }
 
     if (report.userId !== userId) {
-      throw new ForbiddenException('You can only edit your own reports');
+      throw new ForbiddenException(REPORT_SETTINGS.messages.reportOwnershipDenied);
     }
 
     if (report.status !== ReportStatus.DRAFT && report.status !== ReportStatus.NEEDS_CORRECTION) {
-      throw new ForbiddenException('Report is not editable in current status');
+      throw new ForbiddenException(REPORT_SETTINGS.messages.reportReadOnly);
     }
 
     if (dto.weekStart && dto.weekEnd && new Date(dto.weekEnd) < new Date(dto.weekStart)) {
-      throw new BadRequestException('Week end must be after or equal to week start');
+      throw new BadRequestException(REPORT_SETTINGS.messages.invalidWeekRange);
     }
     if (dto.projectId) {
       const project = await this.prisma.project.findUnique({ where: { id: dto.projectId }, select: { isActive: true } });
-      if (!project) throw new NotFoundException('Project not found');
-      if (!project.isActive) throw new BadRequestException('Project is deactivated and cannot be used');
+      if (!project) throw new NotFoundException(REPORT_SETTINGS.messages.projectNotFound);
+      if (!project.isActive) throw new BadRequestException(REPORT_SETTINGS.messages.inactiveProject);
     }
-    this.ensureSingleKeyItem(dto.blockers, 'isKeyIssue', 'Only one blocker can be marked as the key issue');
-    this.ensureSingleKeyItem(dto.achievements, 'isKeyAchievement', 'Only one achievement can be marked as the key achievement');
+    this.ensureSingleKeyItem(dto.blockers, 'isKeyIssue', REPORT_SETTINGS.messages.onlyOneKeyIssue);
+    this.ensureSingleKeyItem(dto.achievements, 'isKeyAchievement', REPORT_SETTINGS.messages.onlyOneKeyAchievement);
 
     return this.prisma.report.update({
       where: { id },
@@ -193,7 +194,7 @@ export class ReportsService {
         weekStart: dto.weekStart ? new Date(dto.weekStart) : undefined,
         weekEnd: dto.weekEnd ? new Date(dto.weekEnd) : undefined,
         notes: dto.notes,
-        tasks: dto.tasks === undefined ? undefined : { deleteMany: {}, create: dto.tasks.map((task) => ({ taskName: task.taskName, priority: (task.priority as any) || 'MEDIUM', plannedPercentage: task.plannedPercentage || 0, actualPercentage: task.actualPercentage || 0, status: (task.status as any) || 'TODO', plannedMinutes: task.plannedMinutes || 0, actualMinutes: task.actualMinutes || 0, deliverable: task.deliverable })) },
+        tasks: dto.tasks === undefined ? undefined : { deleteMany: {}, create: dto.tasks.map((task) => ({ taskName: task.taskName, priority: (task.priority as any) || REPORT_SETTINGS.defaultTaskPriority, plannedPercentage: task.plannedPercentage || 0, actualPercentage: task.actualPercentage || 0, status: (task.status as any) || REPORT_SETTINGS.defaultTaskStatus, plannedMinutes: task.plannedMinutes || 0, actualMinutes: task.actualMinutes || 0, deliverable: task.deliverable })) },
         nextWeekTasks: dto.nextWeekTasks === undefined ? undefined : { deleteMany: {}, create: dto.nextWeekTasks.map((task, index) => ({ description: task.description, sortOrder: task.sortOrder ?? index })) },
         blockers: dto.blockers === undefined ? undefined : { deleteMany: {}, create: dto.blockers.map((blocker) => ({ description: blocker.description, isKeyIssue: blocker.isKeyIssue || false, isResolved: blocker.isResolved || false })) },
         achievements: dto.achievements === undefined ? undefined : { deleteMany: {}, create: dto.achievements.map((achievement) => ({ description: achievement.description, isKeyAchievement: achievement.isKeyAchievement || false })) },

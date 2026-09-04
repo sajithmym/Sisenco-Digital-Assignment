@@ -1,3 +1,7 @@
+import { ROUTES, USER_ROLES } from "@/lib/settings";
+
+export { ROUTES, USER_ROLES };
+
 // ─── Report Statuses ─────────────────────────────────────
 export const REPORT_STATUSES = {
   DRAFT: "DRAFT",
@@ -21,16 +25,10 @@ export const REPORT_STATUS_COLORS: Record<string, string> = {
 };
 
 // ─── User Roles ──────────────────────────────────────────
-export const USER_ROLES = {
-  TEAM_MEMBER: "TEAM_MEMBER",
-  MANAGER: "MANAGER",
-  ADMIN: "ADMIN",
-} as const;
-
 export const USER_ROLE_LABELS: Record<string, string> = {
-  TEAM_MEMBER: "Team Member",
-  MANAGER: "Manager",
-  ADMIN: "Admin",
+  [USER_ROLES.TEAM_MEMBER]: "Team Member",
+  [USER_ROLES.MANAGER]: "Manager",
+  [USER_ROLES.ADMIN]: "Admin",
 };
 
 // ─── Task Priorities ─────────────────────────────────────
@@ -69,20 +67,6 @@ export const WORK_HOUR_TYPE_LABELS: Record<string, string> = {
   DOCUMENTATION: "Documentation",
   OTHER: "Other",
 };
-
-// ─── Routes ──────────────────────────────────────────────
-export const ROUTES = {
-  LOGIN: "/login",
-  REGISTER: "/register",
-  MEMBER_DASHBOARD: "/dashboard",
-  REPORTS_NEW: "/reports/new",
-  REPORTS_HISTORY: "/reports/history",
-  REPORT_DETAIL: (id: string) => `/reports/${id}`,
-  MANAGER_DASHBOARD: "/manager/dashboard",
-  MANAGER_REPORTS: "/manager/reports",
-  MANAGER_USERS: "/manager/users",
-  MANAGER_PROJECTS: "/manager/projects",
-} as const;
 
 // ─── Pagination ──────────────────────────────────────────
 import { PAGINATION_SETTINGS } from "@/lib/settings";

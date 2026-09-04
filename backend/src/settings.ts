@@ -2,6 +2,9 @@
 // All configuration values are centralized here.
 // Environment variables take priority; these are fallback defaults.
 
+import { ReportStatus } from './common/enums/report-status.enum';
+import { UserRole } from './common/enums/user-role.enum';
+
 // ─── Database ───────────────────────────────────────────────
 const DB_HOST = process.env.DB_HOST || 'localhost';
 const DB_PORT = process.env.DB_PORT || '5432';
@@ -37,6 +40,96 @@ export const AUTH_SETTINGS = {
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   jwtRefreshExpiresInDays: 7,
   passwordHashRounds: 12,
+  messages: {
+    invalidCredentials: 'Invalid credentials',
+    accountDeactivated: 'Account is deactivated',
+    invalidRefreshToken: 'Invalid refresh token',
+    expiredRefreshToken: 'Refresh token expired',
+    usedRefreshToken: 'Refresh token has already been used',
+    userNotFoundOrInactive: 'User not found or inactive',
+    emailAlreadyRegistered: 'Email already registered',
+  },
+} as const;
+
+// ─── Domain Defaults and Workflow ──────────────────────────
+// Database states belong to enums; these settings define application behavior around them.
+export const REPORT_SETTINGS = {
+  defaultTaskPriority: 'MEDIUM',
+  defaultTaskStatus: 'TODO',
+  editableStatuses: [ReportStatus.DRAFT, ReportStatus.NEEDS_CORRECTION] as const,
+  messages: {
+    invalidWeekRange: 'Week end must be after or equal to week start',
+    projectNotFound: 'Project not found',
+    inactiveProject: 'Project is deactivated and cannot be used',
+    reportNotFound: 'Report not found',
+    reportAccessDenied: 'You do not have access to this report',
+    reportOwnershipDenied: 'You can only edit your own reports',
+    reportReadOnly: 'Report is not editable in current status',
+    reportMustBeSubmitted: 'Report is not in SUBMITTED status',
+    cannotSubmitInStatus: (status: ReportStatus) => `Cannot submit report in ${status} status`,
+    onlyOneKeyIssue: 'Only one blocker can be marked as the key issue',
+    onlyOneKeyAchievement: 'Only one achievement can be marked as the key achievement',
+    commentRequired: 'Comment is required when requesting changes',
+  },
+} as const;
+
+export const PROJECT_SETTINGS = {
+  messages: {
+    notFound: 'Project not found',
+  },
+} as const;
+
+export const USER_SETTINGS = {
+  defaultRole: UserRole.TEAM_MEMBER,
+  messages: {
+    notFound: 'User not found',
+    cannotChangeOwnRole: 'You cannot change your own role',
+    cannotChangeOwnStatus: 'You cannot change your own account status',
+  },
+} as const;
+
+// ─── API Response Messages ─────────────────────────────────
+// Centralized so response copy can be kept consistent or later moved to i18n.
+export const API_RESPONSE_MESSAGES = {
+  auth: {
+    registered: 'Account registered successfully',
+    loggedIn: 'Logged in successfully',
+    refreshed: 'Tokens refreshed successfully',
+    loggedOut: 'Logged out successfully',
+    userFetched: 'User fetched successfully',
+  },
+  users: {
+    fetched: 'Users fetched successfully',
+    created: 'User created successfully',
+    userFetched: 'User fetched successfully',
+    roleUpdated: 'User role updated successfully',
+    statusUpdated: 'User status updated successfully',
+  },
+  projects: {
+    fetched: 'Projects fetched successfully',
+    projectFetched: 'Project fetched successfully',
+    created: 'Project created successfully',
+    updated: 'Project updated successfully',
+    deactivated: 'Project deactivated successfully',
+  },
+  reports: {
+    created: 'Report created successfully',
+    fetched: 'Reports fetched successfully',
+    reportFetched: 'Report fetched successfully',
+    updated: 'Report updated successfully',
+    submitted: 'Report submitted successfully',
+    versionHistoryFetched: 'Version history fetched successfully',
+    changesRequested: 'Changes requested successfully',
+    approved: 'Report approved successfully',
+  },
+  dashboard: {
+    summaryFetched: 'Summary fetched successfully',
+    statusDistributionFetched: 'Status distribution fetched successfully',
+    taskTrendsFetched: 'Task trends fetched successfully',
+    projectWorkloadFetched: 'Project workload fetched successfully',
+    timeDistributionFetched: 'Time distribution fetched successfully',
+    recentActivityFetched: 'Recent activity fetched successfully',
+  },
 } as const;
 
 // ─── Pagination ─────────────────────────────────────────────

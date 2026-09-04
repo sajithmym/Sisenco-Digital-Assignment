@@ -12,6 +12,7 @@ import { RegisterDto, LoginDto } from './dto';
 import { JwtAuthGuard } from '../common/guards';
 import { CurrentUser } from '../common/decorators';
 import { ApiResponse } from '../common/dto';
+import { API_RESPONSE_MESSAGES } from '../settings';
 
 @Controller('auth')
 export class AuthController {
@@ -21,7 +22,7 @@ export class AuthController {
   async register(@Body() dto: RegisterDto) {
     try {
       const data = await this.authService.register(dto);
-      return ApiResponse.created(data, 'Account registered successfully');
+      return ApiResponse.created(data, API_RESPONSE_MESSAGES.auth.registered);
     } catch (error) {
       // Rethrow — GlobalExceptionFilter formats and sends the actual error message.
       throw error;
@@ -33,7 +34,7 @@ export class AuthController {
   async login(@Body() dto: LoginDto) {
     try {
       const data = await this.authService.login(dto.email, dto.password);
-      return ApiResponse.success(data, 'Logged in successfully');
+      return ApiResponse.success(data, API_RESPONSE_MESSAGES.auth.loggedIn);
     } catch (error) {
       throw error;
     }
@@ -44,7 +45,7 @@ export class AuthController {
   async refresh(@Body('refreshToken') refreshToken: string) {
     try {
       const data = await this.authService.refreshTokens(refreshToken);
-      return ApiResponse.success(data, 'Tokens refreshed successfully');
+      return ApiResponse.success(data, API_RESPONSE_MESSAGES.auth.refreshed);
     } catch (error) {
       throw error;
     }
@@ -55,7 +56,7 @@ export class AuthController {
   async logout(@Body('refreshToken') refreshToken: string) {
     try {
       await this.authService.logout(refreshToken);
-      return ApiResponse.success(null, 'Logged out successfully');
+      return ApiResponse.success(null, API_RESPONSE_MESSAGES.auth.loggedOut);
     } catch (error) {
       throw error;
     }
@@ -66,7 +67,7 @@ export class AuthController {
   async getMe(@CurrentUser('sub') userId: string) {
     try {
       const data = await this.authService.getMe(userId);
-      return ApiResponse.success(data, 'User fetched successfully');
+      return ApiResponse.success(data, API_RESPONSE_MESSAGES.auth.userFetched);
     } catch (error) {
       throw error;
     }

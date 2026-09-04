@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AUTH_SETTINGS } from "@/lib/settings";
+import { AUTH_SETTINGS, getRoleHomeRoute } from "@/lib/settings";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,11 +35,7 @@ export default function LoginPage() {
       localStorage.setItem(AUTH_SETTINGS.accessTokenKey, response.accessToken);
       localStorage.setItem(AUTH_SETTINGS.refreshTokenKey, response.refreshToken);
 
-      if (response.user.role === "MANAGER" || response.user.role === "ADMIN") {
-        router.push("/manager/dashboard");
-      } else {
-        router.push("/dashboard");
-      }
+      router.push(getRoleHomeRoute(response.user.role));
     } catch (err: any) {
       setError(err.response?.data?.message || "Login failed. Please try again.");
     } finally {

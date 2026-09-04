@@ -12,6 +12,41 @@ export const APP_SETTINGS = {
   timezone: process.env.NEXT_PUBLIC_APP_TIMEZONE || 'Asia/Colombo',
 } as const;
 
+// ─── Roles and Route Access ────────────────────────────────
+// Frontend navigation uses these values for display and redirects.
+// The backend remains the authority that enforces permissions on every API request.
+export const USER_ROLES = {
+  TEAM_MEMBER: 'TEAM_MEMBER',
+  MANAGER: 'MANAGER',
+  ADMIN: 'ADMIN',
+} as const;
+
+export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
+
+export const ROUTES = {
+  login: '/login',
+  register: '/register',
+  memberDashboard: '/dashboard',
+  newReport: '/reports/new',
+  reportHistory: '/reports/history',
+  reportDetail: (id: string) => `/reports/${id}`,
+  reportEdit: (id: string) => `/reports/${id}/edit`,
+  managerDashboard: '/manager/dashboard',
+  managerReports: '/manager/reports',
+  managerUsers: '/manager/users',
+  managerProjects: '/manager/projects',
+} as const;
+
+export const ROLE_HOME_ROUTES: Record<UserRole, string> = {
+  [USER_ROLES.TEAM_MEMBER]: ROUTES.memberDashboard,
+  [USER_ROLES.MANAGER]: ROUTES.managerDashboard,
+  [USER_ROLES.ADMIN]: ROUTES.managerDashboard,
+};
+
+export function getRoleHomeRoute(role: UserRole): string {
+  return ROLE_HOME_ROUTES[role];
+}
+
 // ─── UI, Theme and Experience ──────────────────────────────
 // Change these HSL values to rebrand the application without searching through components.
 export const UI_SETTINGS = {

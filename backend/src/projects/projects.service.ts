@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateProjectDto, UpdateProjectDto, ProjectFilterDto } from './dto';
 import { PaginatedResponse } from '../common/dto';
+import { PROJECT_SETTINGS } from '../settings';
 
 @Injectable()
 export class ProjectsService {
@@ -36,7 +37,7 @@ export class ProjectsService {
     });
 
     if (!project) {
-      throw new NotFoundException('Project not found');
+      throw new NotFoundException(PROJECT_SETTINGS.messages.notFound);
     }
 
     return project;
@@ -55,7 +56,7 @@ export class ProjectsService {
     const project = await this.prisma.project.findUnique({ where: { id } });
 
     if (!project) {
-      throw new NotFoundException('Project not found');
+      throw new NotFoundException(PROJECT_SETTINGS.messages.notFound);
     }
 
     return this.prisma.project.update({
@@ -68,7 +69,7 @@ export class ProjectsService {
     const project = await this.prisma.project.findUnique({ where: { id } });
 
     if (!project) {
-      throw new NotFoundException('Project not found');
+      throw new NotFoundException(PROJECT_SETTINGS.messages.notFound);
     }
 
     // Soft delete — deactivate instead of hard delete

@@ -15,15 +15,15 @@ import {
   X,
 } from "lucide-react";
 import { authApi } from "@/services/auth.api";
-import { APP_SETTINGS, AUTH_SETTINGS, UI_SETTINGS } from "@/lib/settings";
+import { APP_SETTINGS, AUTH_SETTINGS, ROUTES, UI_SETTINGS, USER_ROLES } from "@/lib/settings";
 import type { User } from "@/types";
 import { ConfirmationDialog } from "@/components/shared/confirmation-dialog";
 
 const navItems = [
-  { href: "/manager/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/manager/reports", label: "Team Reports", icon: FileText },
-  { href: "/manager/users", label: "Users", icon: Users },
-  { href: "/manager/projects", label: "Projects", icon: FolderKanban },
+  { href: ROUTES.managerDashboard, label: "Dashboard", icon: LayoutDashboard },
+  { href: ROUTES.managerReports, label: "Team Reports", icon: FileText },
+  { href: ROUTES.managerUsers, label: "Users", icon: Users },
+  { href: ROUTES.managerProjects, label: "Projects", icon: FolderKanban },
 ];
 
 export default function ManagerLayout({ children }: { children: React.ReactNode }) {
@@ -36,18 +36,18 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
   useEffect(() => {
     const token = localStorage.getItem(AUTH_SETTINGS.accessTokenKey);
     if (!token) {
-      router.push("/login");
+      router.push(ROUTES.login);
       return;
     }
 
     authApi.getMe().then((u) => {
-      if (u.role === "TEAM_MEMBER") {
-        router.push("/dashboard");
+      if (u.role === USER_ROLES.TEAM_MEMBER) {
+        router.push(ROUTES.memberDashboard);
         return;
       }
       setUser(u);
     }).catch(() => {
-      router.push("/login");
+      router.push(ROUTES.login);
     });
   }, [router]);
 
@@ -67,7 +67,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
     }
     localStorage.removeItem(AUTH_SETTINGS.accessTokenKey);
     localStorage.removeItem(AUTH_SETTINGS.refreshTokenKey);
-    router.push("/login");
+    router.push(ROUTES.login);
   };
 
   return (
@@ -115,7 +115,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
           </div>
           <div className="p-6 md:hidden" />
           <nav className="flex-1 space-y-1 overflow-y-auto px-4 pb-20">
-            {navItems.filter((item) => item.href !== "/manager/users" || user?.role === "ADMIN" || user?.role === "MANAGER").map((item) => {
+            {navItems.filter((item) => item.href !== ROUTES.managerUsers || user?.role === USER_ROLES.ADMIN || user?.role === USER_ROLES.MANAGER).map((item) => {
               const Icon = item.icon;
               return (
                 <Link
@@ -129,7 +129,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
                   )}
                 >
                   <Icon className="h-4 w-4" />
-                  {item.href === "/manager/users" && user?.role === "MANAGER" ? "Team Members" : item.label}
+                  {item.href === ROUTES.managerUsers && user?.role === USER_ROLES.MANAGER ? "Team Members" : item.label}
                 </Link>
               );
             })}

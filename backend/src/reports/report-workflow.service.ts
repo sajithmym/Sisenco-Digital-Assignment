@@ -5,7 +5,8 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { ReportStatus, UserRole, ReviewAction } from '../common/enums';
+import { ReportStatus, ReviewAction } from '../common/enums';
+import { REPORT_SETTINGS } from '../settings';
 
 @Injectable()
 export class ReportWorkflowService {
@@ -27,12 +28,13 @@ export class ReportWorkflowService {
       },
     });
 
-    if (!report) throw new NotFoundException('Report not found');
-    if (report.userId !== userId) throw new ForbiddenException('Not your report');
+    if (!report) throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
+    if (report.userId !== userId) throw new ForbiddenException(REPORT_SETTINGS.messages.reportOwnershipDenied);
 
-    const editableStatuses = [ReportStatus.DRAFT, ReportStatus.NEEDS_CORRECTION];
-    if (!editableStatuses.includes(report.status as ReportStatus)) {
-      throw new BadRequestException(`Cannot submit report in ${report.status} status`);
+    if (!REPORT_SETTINGS.editableStatuses.includes(report.status as ReportStatus.DRAFT | ReportStatus.NEEDS_CORRECTION)) {
+      throw new BadRequestException(
+        REPORT_SETTINGS.messages.cannotSubmitInStatus(report.status as ReportStatus),
+      );
     }
 
     // Create version snapshot in a transaction
@@ -67,16 +69,16 @@ export class ReportWorkflowService {
    */
   async requestChanges(reportId: string, reviewerId: string, comment: string) {
     if (!comment || comment.trim().length === 0) {
-      throw new BadRequestException('Comment is required when requesting changes');
+      throw new BadRequestException(REPORT_SETTINGS.messages.commentRequired);
     }
 
     const report = await this.prisma.report.findUnique({
       where: { id: reportId },
     });
 
-    if (!report) throw new NotFoundException('Report not found');
+    if (!report) throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
     if (report.status !== ReportStatus.SUBMITTED) {
-      throw new BadRequestException('Report is not in SUBMITTED status');
+      throw new BadRequestException(REPORT_SETTINGS.messages.reportMustBeSubmitted);
     }
 
     // Find the version being reviewed
@@ -115,9 +117,9 @@ export class ReportWorkflowService {
       where: { id: reportId },
     });
 
-    if (!report) throw new NotFoundException('Report not found');
+    if (!report) throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
     if (report.status !== ReportStatus.SUBMITTED) {
-      throw new BadRequestException('Report is not in SUBMITTED status');
+      throw new BadRequestException(REPORT_SETTINGS.messages.reportMustBeSubmitted);
     }
 
     const version = await this.prisma.reportVersion.findFirst({

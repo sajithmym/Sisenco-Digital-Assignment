@@ -1,9 +1,11 @@
+import type { UserRole } from "@/lib/settings";
+
 // ─── User ────────────────────────────────────────────────
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: "TEAM_MEMBER" | "MANAGER" | "ADMIN";
+  role: UserRole;
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;

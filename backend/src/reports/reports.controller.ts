@@ -19,6 +19,7 @@ import { Roles } from '../common/decorators';
 import { UserRole } from '../common/enums';
 import { ApiResponse } from '../common/dto';
 import { RequestWithUser } from '../common/interfaces';
+import { API_RESPONSE_MESSAGES } from '../settings';
 
 @Controller()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -34,7 +35,7 @@ export class ReportsController {
   async create(@Req() req: RequestWithUser, @Body() dto: CreateReportDto) {
     try {
       const data = await this.reportsService.create(req.user.sub, dto);
-      return ApiResponse.created(data, 'Report created successfully');
+      return ApiResponse.created(data, API_RESPONSE_MESSAGES.reports.created);
     } catch (error) {
       // Rethrow — GlobalExceptionFilter formats and sends the actual error message.
       throw error;
@@ -48,7 +49,7 @@ export class ReportsController {
   ) {
     try {
       const result = await this.reportsService.findMyReports(req.user.sub, pagination);
-      return ApiResponse.paginated(result.data, result.meta, 'Reports fetched successfully');
+      return ApiResponse.paginated(result.data, result.meta, API_RESPONSE_MESSAGES.reports.fetched);
     } catch (error) {
       throw error;
     }
@@ -58,7 +59,7 @@ export class ReportsController {
   async findById(@Param('id') id: string, @Req() req: RequestWithUser) {
     try {
       const data = await this.reportsService.findById(id, req.user.sub, req.user.role);
-      return ApiResponse.success(data, 'Report fetched successfully');
+      return ApiResponse.success(data, API_RESPONSE_MESSAGES.reports.reportFetched);
     } catch (error) {
       throw error;
     }
@@ -72,7 +73,7 @@ export class ReportsController {
   ) {
     try {
       const data = await this.reportsService.update(id, req.user.sub, dto);
-      return ApiResponse.success(data, 'Report updated successfully');
+      return ApiResponse.success(data, API_RESPONSE_MESSAGES.reports.updated);
     } catch (error) {
       throw error;
     }
@@ -83,7 +84,7 @@ export class ReportsController {
   async submit(@Param('id') id: string, @Req() req: RequestWithUser) {
     try {
       const data = await this.workflowService.submit(id, req.user.sub);
-      return ApiResponse.success(data, 'Report submitted successfully');
+      return ApiResponse.success(data, API_RESPONSE_MESSAGES.reports.submitted);
     } catch (error) {
       throw error;
     }
@@ -94,7 +95,7 @@ export class ReportsController {
     try {
       await this.reportsService.findById(id, req.user.sub, req.user.role);
       const data = await this.workflowService.getVersionHistory(id);
-      return ApiResponse.success(data, 'Version history fetched successfully');
+      return ApiResponse.success(data, API_RESPONSE_MESSAGES.reports.versionHistoryFetched);
     } catch (error) {
       throw error;
     }
@@ -107,7 +108,7 @@ export class ReportsController {
   async findTeamReports(@Query() filters: ReportFilterDto) {
     try {
       const result = await this.reportsService.findByFilters(filters);
-      return ApiResponse.paginated(result.data, result.meta, 'Reports fetched successfully');
+      return ApiResponse.paginated(result.data, result.meta, API_RESPONSE_MESSAGES.reports.fetched);
     } catch (error) {
       throw error;
     }
@@ -118,7 +119,7 @@ export class ReportsController {
   async findTeamReportById(@Param('id') id: string, @Req() req: RequestWithUser) {
     try {
       const data = await this.reportsService.findById(id, req.user.sub, req.user.role);
-      return ApiResponse.success(data, 'Report fetched successfully');
+      return ApiResponse.success(data, API_RESPONSE_MESSAGES.reports.reportFetched);
     } catch (error) {
       throw error;
     }
@@ -134,7 +135,7 @@ export class ReportsController {
   ) {
     try {
       const data = await this.workflowService.requestChanges(id, req.user.sub, dto.comment);
-      return ApiResponse.success(data, 'Changes requested successfully');
+      return ApiResponse.success(data, API_RESPONSE_MESSAGES.reports.changesRequested);
     } catch (error) {
       throw error;
     }
@@ -146,7 +147,7 @@ export class ReportsController {
   async approve(@Param('id') id: string, @Req() req: RequestWithUser) {
     try {
       const data = await this.workflowService.approve(id, req.user.sub);
-      return ApiResponse.success(data, 'Report approved successfully');
+      return ApiResponse.success(data, API_RESPONSE_MESSAGES.reports.approved);
     } catch (error) {
       throw error;
     }

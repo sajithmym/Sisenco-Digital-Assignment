@@ -3,7 +3,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../database/prisma.service';
 import { PaginatedResponse } from '../common/dto';
 import { UserRole } from '../common/enums';
-import { AUTH_SETTINGS } from '../settings';
+import { AUTH_SETTINGS, USER_SETTINGS } from '../settings';
 import { CreateUserDto, UserFilterDto } from './dto';
 
 @Injectable()
@@ -57,7 +57,7 @@ export class UsersService {
         name: dto.name.trim(),
         email: dto.email.trim().toLowerCase(),
         passwordHash,
-        role: dto.role || UserRole.TEAM_MEMBER,
+        role: dto.role || USER_SETTINGS.defaultRole,
       },
       select: {
         id: true,
@@ -88,7 +88,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(USER_SETTINGS.messages.notFound);
     }
 
     return user;
@@ -98,7 +98,7 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({ where: { id } });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(USER_SETTINGS.messages.notFound);
     }
 
     return this.prisma.user.update({
@@ -118,7 +118,7 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({ where: { id } });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(USER_SETTINGS.messages.notFound);
     }
 
     return this.prisma.user.update({

@@ -8,9 +8,8 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
-import { AUTH_SETTINGS } from '../settings';
+import { AUTH_SETTINGS, USER_SETTINGS } from '../settings';
 import { RegisterDto } from './dto';
-import { UserRole } from '../common/enums';
 
 @Injectable()
 export class AuthService {
@@ -25,7 +24,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new ConflictException('Email already registered');
+      throw new ConflictException(AUTH_SETTINGS.messages.emailAlreadyRegistered);
     }
 
     const passwordHash = await bcrypt.hash(
@@ -40,7 +39,7 @@ export class AuthService {
           name: dto.name,
           email: dto.email,
           passwordHash,
-          role: UserRole.TEAM_MEMBER,
+          role: USER_SETTINGS.defaultRole,
         },
         select: {
           id: true,
@@ -53,7 +52,7 @@ export class AuthService {
     } catch (error) {
       // Race condition: two requests with the same email — surface the real cause.
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException('Email already registered');
+        throw new ConflictException(AUTH_SETTINGS.messages.emailAlreadyRegistered);
       }
       throw error;
     }
@@ -73,17 +72,17 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(AUTH_SETTINGS.messages.invalidCredentials);
     }
 
     if (!user.isActive) {
-      throw new ForbiddenException('Account is deactivated');
+      throw new ForbiddenException(AUTH_SETTINGS.messages.accountDeactivated);
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(AUTH_SETTINGS.messages.invalidCredentials);
     }
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);
@@ -108,7 +107,7 @@ export class AuthService {
         secret: AUTH_SETTINGS.jwtRefreshSecret,
       });
     } catch {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException(AUTH_SETTINGS.messages.invalidRefreshToken);
     }
 
     const tokenRecord = await this.prisma.refreshToken.findUnique({
@@ -117,16 +116,16 @@ export class AuthService {
     });
 
     if (!tokenRecord) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException(AUTH_SETTINGS.messages.invalidRefreshToken);
     }
 
     if (tokenRecord.userId !== payload.sub) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException(AUTH_SETTINGS.messages.invalidRefreshToken);
     }
 
     if (new Date() > tokenRecord.expiresAt) {
       await this.prisma.refreshToken.deleteMany({ where: { id: tokenRecord.id } });
-      throw new UnauthorizedException('Refresh token expired');
+      throw new UnauthorizedException(AUTH_SETTINGS.messages.expiredRefreshToken);
     }
 
     const user = tokenRecord.user;
@@ -137,7 +136,7 @@ export class AuthService {
       });
 
       if (consumedToken.count !== 1) {
-        throw new UnauthorizedException('Refresh token has already been used');
+        throw new UnauthorizedException(AUTH_SETTINGS.messages.usedRefreshToken);
       }
 
       const tokens = await this.generateTokens(user.id, user.email, user.role);
@@ -174,7 +173,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException(USER_SETTINGS.messages.notFound);
     }
 
     return user;

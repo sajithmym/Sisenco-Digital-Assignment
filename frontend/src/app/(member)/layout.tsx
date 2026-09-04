@@ -7,14 +7,14 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FileText, LayoutDashboard, History, LogOut, Menu, X } from "lucide-react";
 import { authApi } from "@/services/auth.api";
-import { APP_SETTINGS, AUTH_SETTINGS, UI_SETTINGS } from "@/lib/settings";
+import { APP_SETTINGS, AUTH_SETTINGS, ROUTES, UI_SETTINGS } from "@/lib/settings";
 import type { User } from "@/types";
 import { ConfirmationDialog } from "@/components/shared/confirmation-dialog";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/reports/new", label: "New Report", icon: FileText },
-  { href: "/reports/history", label: "Report History", icon: History },
+  { href: ROUTES.memberDashboard, label: "Dashboard", icon: LayoutDashboard },
+  { href: ROUTES.newReport, label: "New Report", icon: FileText },
+  { href: ROUTES.reportHistory, label: "Report History", icon: History },
 ];
 
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
@@ -27,12 +27,12 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   useEffect(() => {
     const token = localStorage.getItem(AUTH_SETTINGS.accessTokenKey);
     if (!token) {
-      router.push("/login");
+      router.push(ROUTES.login);
       return;
     }
 
     authApi.getMe().then(setUser).catch(() => {
-      router.push("/login");
+      router.push(ROUTES.login);
     });
   }, [router]);
 
@@ -52,7 +52,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
     }
     localStorage.removeItem(AUTH_SETTINGS.accessTokenKey);
     localStorage.removeItem(AUTH_SETTINGS.refreshTokenKey);
-    router.push("/login");
+    router.push(ROUTES.login);
   };
 
   return (
