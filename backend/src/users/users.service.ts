@@ -1,18 +1,34 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../database/prisma.service';
-import { PaginationDto, PaginatedResponse } from '../common/dto';
+import { PaginatedResponse } from '../common/dto';
 import { UserRole } from '../common/enums';
+import { AUTH_SETTINGS } from '../settings';
+import { CreateUserDto, UserFilterDto } from './dto';
 
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(pagination: PaginationDto) {
-    const { page, limit } = pagination;
+  async findAll(filters: UserFilterDto) {
+    const { page, limit, search, role, isActive } = filters;
     const skip = (page - 1) * limit;
+    const where = {
+      ...(role ? { role } : {}),
+      ...(isActive === undefined ? {} : { isActive }),
+      ...(search?.trim()
+        ? {
+            OR: [
+              { name: { contains: search.trim(), mode: 'insensitive' as const } },
+              { email: { contains: search.trim(), mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    };
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
+        where,
         skip,
         take: limit,
         select: {
@@ -28,10 +44,30 @@ export class UsersService {
         },
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.user.count(),
+      this.prisma.user.count({ where }),
     ]);
 
     return new PaginatedResponse(users, total, page, limit);
+  }
+
+  async create(dto: CreateUserDto) {
+    const passwordHash = await bcrypt.hash(dto.password, AUTH_SETTINGS.passwordHashRounds);
+    return this.prisma.user.create({
+      data: {
+        name: dto.name.trim(),
+        email: dto.email.trim().toLowerCase(),
+        passwordHash,
+        role: dto.role || UserRole.TEAM_MEMBER,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
   }
 
   async findById(id: string) {
