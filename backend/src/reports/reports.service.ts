@@ -240,7 +240,7 @@ export class ReportsService {
     return new PaginatedResponse(reports, total, page, limit);
   }
 
-  private ensureSingleKeyItem<T extends Record<string, unknown>>(
+  private ensureSingleKeyItem<T>(
     items: T[] | undefined,
     key: keyof T,
     message: string,
