@@ -54,7 +54,7 @@ export default function MemberDashboardPage() {
       />
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Reports</CardTitle>
@@ -113,7 +113,7 @@ export default function MemberDashboardPage() {
             {recentReports.map((report) => (
               <Link key={report.id} href={`/reports/${report.id}`}>
                 <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="p-4 flex items-center justify-between">
+                  <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div>
                       <p className="font-medium">
                         Week of {formatDate(report.weekStart)} — {formatDate(report.weekEnd)}

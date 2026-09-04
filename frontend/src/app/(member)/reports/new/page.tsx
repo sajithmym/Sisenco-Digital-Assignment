@@ -67,7 +67,7 @@ export default function NewReportPage() {
           <CardHeader>
             <CardTitle>Week Range</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Week Start</Label>
               <DatePicker
@@ -106,7 +106,7 @@ export default function NewReportPage() {
           </CardContent>
         </Card>
 
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <Button type="submit" disabled={loading}>
             {loading ? "Creating..." : "Create Report"}
           </Button>

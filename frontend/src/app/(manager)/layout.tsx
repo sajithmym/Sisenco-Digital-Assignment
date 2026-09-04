@@ -11,6 +11,8 @@ import {
   Users,
   FolderKanban,
   LogOut,
+  Menu,
+  X,
 } from "lucide-react";
 import { authApi } from "@/services/auth.api";
 import { AUTH_SETTINGS } from "@/lib/settings";
@@ -27,6 +29,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem(AUTH_SETTINGS.accessTokenKey);
@@ -46,6 +49,11 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
     });
   }, [router]);
 
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
   const handleLogout = () => {
     localStorage.removeItem(AUTH_SETTINGS.accessTokenKey);
     localStorage.removeItem(AUTH_SETTINGS.refreshTokenKey);
@@ -53,50 +61,86 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Sidebar */}
-      <aside className="w-64 border-r bg-card">
-        <div className="p-6">
-          <h2 className="text-lg font-bold">Manager Panel</h2>
-          {user && (
-            <p className="text-sm text-muted-foreground mt-1">{user.name}</p>
-          )}
-        </div>
-        <nav className="px-4 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  pathname === item.href
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="absolute bottom-0 w-64 p-4">
+    <div className="min-h-screen flex relative">
+      {/* Mobile Header */}
+      <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between border-b bg-card px-4 py-3 md:hidden">
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
-            className="w-full justify-start"
-            onClick={handleLogout}
+            size="sm"
+            className="p-1"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
           >
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
+            {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
+          <h2 className="text-sm font-bold">Manager Panel</h2>
+        </div>
+        {user && (
+          <p className="text-xs text-muted-foreground">{user.name}</p>
+        )}
+      </div>
+
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 w-64 border-r bg-card transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:transition-none",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="flex h-full flex-col">
+          <div className="p-6 hidden md:block">
+            <h2 className="text-lg font-bold">Manager Panel</h2>
+            {user && (
+              <p className="text-sm text-muted-foreground mt-1">{user.name}</p>
+            )}
+          </div>
+          <div className="p-6 md:hidden" />
+          <nav className="flex-1 px-4 space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    pathname === item.href
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="p-4">
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">{children}</div>
+      <main className="flex-1 overflow-auto w-full">
+        <div className="pt-14 md:pt-0">
+          <div className="p-4 sm:p-6 lg:p-8">{children}</div>
+        </div>
       </main>
     </div>
   );

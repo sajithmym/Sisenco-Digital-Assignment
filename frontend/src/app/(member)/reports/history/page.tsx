@@ -57,7 +57,7 @@ export default function ReportHistoryPage() {
           {reports.map((report) => (
             <Link key={report.id} href={`/reports/${report.id}`}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="p-4 flex items-center justify-between">
+                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
                     <p className="font-medium">
                       Week of {formatDate(report.weekStart)} — {formatDate(report.weekEnd)}

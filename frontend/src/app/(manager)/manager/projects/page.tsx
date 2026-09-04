@@ -117,7 +117,7 @@ export default function ManagerProjectsPage() {
       <div className="space-y-3">
         {projects.map((project) => (
           <Card key={project.id}>
-            <CardContent className="p-4 flex items-center justify-between">
+            <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
                 <p className="font-medium">{project.name}</p>
                 {project.description && (

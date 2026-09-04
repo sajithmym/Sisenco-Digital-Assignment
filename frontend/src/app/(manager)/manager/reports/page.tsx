@@ -68,7 +68,7 @@ export default function ManagerReportsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 items-end">
             <div className="space-y-2">
               <Label>Status</Label>
               <Select
@@ -121,7 +121,7 @@ export default function ManagerReportsPage() {
           {reports.map((report) => (
             <Link key={report.id} href={`/manager/reports/${report.id}`}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="p-4 flex items-center justify-between">
+                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
                     <p className="font-medium">{report.user?.name || "Unknown"}</p>
                     <p className="text-sm text-muted-foreground">

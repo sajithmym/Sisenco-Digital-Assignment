@@ -89,7 +89,7 @@ export default function ManagerDashboardPage() {
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
         <MetricCard
           title="Reports Submitted"
           value={summary?.submittedCount || 0}
@@ -118,7 +118,7 @@ export default function ManagerDashboardPage() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Status Distribution */}
         <Card>
           <CardHeader>
@@ -245,7 +245,7 @@ export default function ManagerDashboardPage() {
           {activity.length > 0 ? (
             <div className="space-y-3">
               {activity.map((item) => (
-                <div key={item.id} className="flex items-start gap-3 p-3 border rounded-md">
+                <div key={item.id} className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3 p-3 border rounded-md">
                   <div className="flex-1">
                     <p className="text-sm">
                       <span className="font-medium">{item.reviewer.name}</span>{" "}

@@ -102,7 +102,7 @@ export default function ManagerReportDetailPage() {
           <CardContent>
             <div className="space-y-3">
               {report.tasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between p-3 border rounded-md">
+                <div key={task.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border rounded-md">
                   <div>
                     <p className="font-medium">{task.taskName}</p>
                     <p className="text-sm text-muted-foreground">
@@ -226,7 +226,7 @@ export default function ManagerReportDetailPage() {
                 onChange={(e) => setComment(e.target.value)}
               />
             </div>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Button
                 onClick={handleApprove}
                 disabled={actionLoading}

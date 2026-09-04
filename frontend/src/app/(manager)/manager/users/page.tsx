@@ -59,7 +59,7 @@ export default function ManagerUsersPage() {
       <div className="space-y-3">
         {users.map((user) => (
           <Card key={user.id}>
-            <CardContent className="p-4 flex items-center justify-between">
+            <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <p className="font-medium">{user.name}</p>
                 <p className="text-sm text-muted-foreground">{user.email}</p>
