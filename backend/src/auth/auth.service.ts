@@ -102,6 +102,15 @@ export class AuthService {
   }
 
   async refreshTokens(refreshToken: string) {
+    let payload: { sub: string };
+    try {
+      payload = await this.jwtService.verifyAsync<{ sub: string }>(refreshToken, {
+        secret: AUTH_SETTINGS.jwtRefreshSecret,
+      });
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
     const tokenRecord = await this.prisma.refreshToken.findUnique({
       where: { token: refreshToken },
       include: { user: true },
@@ -111,23 +120,37 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
+    if (tokenRecord.userId !== payload.sub) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
     if (new Date() > tokenRecord.expiresAt) {
-      await this.prisma.refreshToken.delete({
-        where: { id: tokenRecord.id },
-      });
+      await this.prisma.refreshToken.deleteMany({ where: { id: tokenRecord.id } });
       throw new UnauthorizedException('Refresh token expired');
     }
 
-    // Delete old refresh token (rotation)
-    await this.prisma.refreshToken.delete({
-      where: { id: tokenRecord.id },
-    });
-
     const user = tokenRecord.user;
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
-    await this.storeRefreshToken(user.id, tokens.refreshToken);
+    return this.prisma.$transaction(async (transaction) => {
+      // Atomic compare-and-delete prevents a concurrent refresh from replaying the same token.
+      const consumedToken = await transaction.refreshToken.deleteMany({
+        where: { id: tokenRecord.id, token: refreshToken },
+      });
 
-    return tokens;
+      if (consumedToken.count !== 1) {
+        throw new UnauthorizedException('Refresh token has already been used');
+      }
+
+      const tokens = await this.generateTokens(user.id, user.email, user.role);
+      await transaction.refreshToken.create({
+        data: {
+          userId: user.id,
+          token: tokens.refreshToken,
+          expiresAt: this.getRefreshTokenExpiry(),
+        },
+      });
+
+      return tokens;
+    });
   }
 
   async logout(refreshToken: string) {
@@ -174,16 +197,18 @@ export class AuthService {
   }
 
   private async storeRefreshToken(userId: string, token: string) {
-    const expiresInDays = AUTH_SETTINGS.jwtRefreshExpiresInDays;
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + expiresInDays);
-
     await this.prisma.refreshToken.create({
       data: {
         userId,
         token,
-        expiresAt,
+        expiresAt: this.getRefreshTokenExpiry(),
       },
     });
+  }
+
+  private getRefreshTokenExpiry() {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + AUTH_SETTINGS.jwtRefreshExpiresInDays);
+    return expiresAt;
   }
 }
