@@ -4,11 +4,12 @@ const { ValidationPipe } = require("@nestjs/common");
 const request = require("supertest");
 const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
+const helmet = require("helmet");
 const { AppModule } = require("../src/app.module");
 const { PrismaService } = require("../src/database/prisma.service");
 const { GlobalExceptionFilter } = require("../src/common/filters");
 const { ReportsService } = require("../src/reports/reports.service");
-const { AUTH_SETTINGS } = require("../src/settings");
+const { AUTH_SETTINGS, SERVER_SETTINGS } = require("../src/settings");
 
 describe("HTTP authorization, reports, and dashboard with an isolated PostgreSQL schema", () => {
   let app,
@@ -20,7 +21,8 @@ describe("HTTP authorization, reports, and dashboard with an isolated PostgreSQL
     admin,
     project,
     tokens,
-    reportId;
+    reportId,
+    invitedUserId;
   const dates = { weekStart: "2026-08-31", weekEnd: "2026-09-06" };
   const task = {
     taskName: "Deliver feature",
@@ -38,7 +40,17 @@ describe("HTTP authorization, reports, and dashboard with an isolated PostgreSQL
     }).compile();
     app = module.createNestApplication();
     app.setGlobalPrefix("api/v1");
+    app.use(helmet());
     app.use(cookieParser());
+    app.enableCors({
+      origin: SERVER_SETTINGS.frontendUrl,
+      credentials: true,
+      methods: SERVER_SETTINGS.cors.methods,
+      allowedHeaders: [
+        ...SERVER_SETTINGS.cors.allowedHeaders,
+        AUTH_SETTINGS.csrfHeaderName,
+      ],
+    });
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -83,6 +95,24 @@ describe("HTTP authorization, reports, and dashboard with an isolated PostgreSQL
     if (app) await app.close();
   });
 
+  it("serves a healthy API through the production middleware configuration", async () => {
+    const response = await request(http)
+      .get("/api/v1/health")
+      .set("Origin", SERVER_SETTINGS.frontendUrl)
+      .expect(200);
+    expect(response.body).toMatchObject({
+      success: true,
+      statusCode: 200,
+      data: { status: "ok", database: "connected" },
+    });
+    expect(response.headers["x-content-type-options"]).toBe("nosniff");
+    expect(response.headers["x-frame-options"]).toBe("SAMEORIGIN");
+    expect(response.headers["access-control-allow-origin"]).toBe(
+      SERVER_SETTINGS.frontendUrl,
+    );
+    expect(response.headers["access-control-allow-credentials"]).toBe("true");
+  });
+
   it("rejects anonymous access, member manager-access, and manager admin-access", async () => {
     await request(http).get("/api/v1/reports/my").expect(401);
     await request(http)
@@ -99,7 +129,7 @@ describe("HTTP authorization, reports, and dashboard with an isolated PostgreSQL
       .set(auth("member"))
       .send({ name: "Forbidden project" })
       .expect(403);
-    await request(http)
+    const invited = await request(http)
       .post("/api/v1/users")
       .set(auth("admin"))
       .send({
@@ -109,6 +139,41 @@ describe("HTTP authorization, reports, and dashboard with an isolated PostgreSQL
         role: "MANAGER",
       })
       .expect(201);
+    invitedUserId = invited.body.data.id;
+    expect(invited.body).toMatchObject({
+      success: true,
+      statusCode: 201,
+      data: { email: "invited@example.invalid", role: "MANAGER" },
+    });
+  });
+
+  it("returns a consistent error envelope and enforces browser-session CSRF checks", async () => {
+    const invalidLogin = await request(http)
+      .post("/api/v1/auth/login")
+      .send({ email: member.email })
+      .expect(400);
+    expect(invalidLogin.body).toMatchObject({
+      success: false,
+      statusCode: 400,
+      code: "BAD_REQUEST",
+      data: null,
+    });
+    await request(http)
+      .post("/api/v1/auth/refresh")
+      .expect(403);
+    await request(http)
+      .post("/api/v1/auth/logout")
+      .expect(403);
+    const profile = await request(http)
+      .get("/api/v1/auth/me")
+      .set(auth("manager"))
+      .expect(200);
+    expect(profile.body.data).toMatchObject({
+      id: manager.id,
+      email: manager.email,
+      role: "MANAGER",
+    });
+    expect(profile.body.data.passwordHash).toBeUndefined();
   });
 
   it("keeps self-registered accounts pending until an administrator activates them", async () => {
@@ -153,6 +218,102 @@ describe("HTTP authorization, reports, and dashboard with an isolated PostgreSQL
       accessToken: expect.any(String),
     });
     expect(login.headers["set-cookie"][0]).toContain("HttpOnly");
+
+    const duplicate = await request(http)
+      .post("/api/v1/auth/register")
+      .send(credentials)
+      .expect(409);
+    expect(duplicate.body).toMatchObject({
+      success: false,
+      statusCode: 409,
+      code: "CONFLICT",
+      message: "Email already registered",
+    });
+  });
+
+  it("manages users and projects with role-aware filtering and pagination", async () => {
+    const users = await request(http)
+      .get("/api/v1/users")
+      .query({ search: "Fixture 1", role: "TEAM_MEMBER", page: 1, limit: 1 })
+      .set(auth("manager"))
+      .expect(200);
+    expect(users.body).toMatchObject({
+      success: true,
+      data: [expect.objectContaining({ id: other.id, email: other.email })],
+      meta: { page: 1, limit: 1, total: 1, totalPages: 1 },
+    });
+    expect(users.body.data[0].passwordHash).toBeUndefined();
+    await request(http)
+      .get(`/api/v1/users/${other.id}`)
+      .set(auth("manager"))
+      .expect(200);
+    await request(http)
+      .get("/api/v1/users/missing-user")
+      .set(auth("manager"))
+      .expect(404);
+    await request(http)
+      .patch(`/api/v1/users/${admin.id}/role`)
+      .set(auth("admin"))
+      .send({ role: "MANAGER" })
+      .expect(403);
+    await request(http)
+      .patch(`/api/v1/users/${admin.id}/status`)
+      .set(auth("admin"))
+      .send({ isActive: false })
+      .expect(403);
+    await request(http)
+      .patch(`/api/v1/users/${invitedUserId}/status`)
+      .set(auth("admin"))
+      .send({ isActive: false })
+      .expect(200);
+    const inactiveManagers = await request(http)
+      .get("/api/v1/users")
+      .query({ role: "MANAGER", isActive: false })
+      .set(auth("admin"))
+      .expect(200);
+    expect(inactiveManagers.body.data).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: invitedUserId })]),
+    );
+
+    const secondary = await request(http)
+      .post("/api/v1/projects")
+      .set(auth("manager"))
+      .send({ name: "Secondary project", description: "Before update" })
+      .expect(201);
+    const secondaryId = secondary.body.data.id;
+    const updated = await request(http)
+      .patch(`/api/v1/projects/${secondaryId}`)
+      .set(auth("manager"))
+      .send({ name: "Secondary project updated", description: "After update" })
+      .expect(200);
+    expect(updated.body.data).toMatchObject({
+      id: secondaryId,
+      name: "Secondary project updated",
+      description: "After update",
+    });
+    const projectSearch = await request(http)
+      .get("/api/v1/projects")
+      .query({ search: "UPDATED", page: 1, limit: 1 })
+      .set(auth("member"))
+      .expect(200);
+    expect(projectSearch.body).toMatchObject({
+      data: [expect.objectContaining({ id: secondaryId })],
+      meta: { total: 1 },
+    });
+    await request(http)
+      .delete(`/api/v1/projects/${secondaryId}`)
+      .set(auth("manager"))
+      .expect(200);
+    const archived = await request(http)
+      .get("/api/v1/projects")
+      .query({ isActive: false })
+      .set(auth("member"))
+      .expect(200);
+    expect(archived.body.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: secondaryId, isActive: false }),
+      ]),
+    );
   });
 
   it("creates private drafts and rejects blank fields/null arrays", async () => {
@@ -169,10 +330,50 @@ describe("HTTP authorization, reports, and dashboard with an isolated PostgreSQL
         projectId: project.id,
         tasks: [task],
         nextWeekTasks: [{ description: "Next delivery" }],
+        blockers: [{ description: "Waiting for review", isKeyIssue: true }],
+        achievements: [{ description: "Delivered baseline", isKeyAchievement: true }],
+        workHours: [
+          { type: "DEVELOPMENT", minutes: 75 },
+          { type: "TESTING", minutes: 45 },
+        ],
         notes: "Original notes",
       })
       .expect(201);
     reportId = response.body.data.id;
+    expect(response.body.data).toMatchObject({
+      status: "DRAFT",
+      tasks: [task],
+      blockers: [expect.objectContaining({ isKeyIssue: true })],
+      achievements: [expect.objectContaining({ isKeyAchievement: true })],
+    });
+    const myReports = await request(http)
+      .get("/api/v1/reports/my")
+      .query({ page: 1, limit: 1 })
+      .set(auth("member"))
+      .expect(200);
+    expect(myReports.body).toMatchObject({
+      data: [expect.objectContaining({ id: reportId, status: "DRAFT" })],
+      meta: { page: 1, limit: 1, total: 1 },
+    });
+    const summary = await request(http)
+      .get("/api/v1/reports/my/summary")
+      .set(auth("member"))
+      .expect(200);
+    expect(summary.body.data).toMatchObject({ DRAFT: 1 });
+    const ownReport = await request(http)
+      .get(`/api/v1/reports/${reportId}`)
+      .set(auth("member"))
+      .expect(200);
+    expect(ownReport.body.data).toMatchObject({
+      id: reportId,
+      notes: "Original notes",
+      project: { id: project.id },
+    });
+    await request(http)
+      .post("/api/v1/reports")
+      .set(auth("member"))
+      .send({ ...dates, projectId: project.id, tasks: [task] })
+      .expect(400);
     await request(http)
       .get(`/api/v1/reports/${reportId}`)
       .set(auth("other"))
@@ -218,7 +419,7 @@ describe("HTTP authorization, reports, and dashboard with an isolated PostgreSQL
       .expect(200);
     expect(summary.body.data).toMatchObject({
       complianceRate: 0,
-      pendingCount: 2,
+      pendingCount: 3,
       submittedCount: 0,
     });
   });
@@ -295,9 +496,101 @@ describe("HTTP authorization, reports, and dashboard with an isolated PostgreSQL
     expect(summary.body.data).toMatchObject({
       submittedCount: 1,
       approvedCount: 1,
-      expectedCount: 2,
-      complianceRate: 50,
+      expectedCount: 3,
+      complianceRate: 33,
     });
+    const history = await request(http)
+      .get(`/api/v1/reports/${reportId}/versions`)
+      .set(auth("member"))
+      .expect(200);
+    expect(history.body.data).toHaveLength(2);
+    const filteredReports = await request(http)
+      .get("/api/v1/manager/reports")
+      .query({
+        userId: member.id,
+        projectId: project.id,
+        status: "APPROVED",
+        weekStart: dates.weekStart,
+        weekEnd: dates.weekEnd,
+      })
+      .set(auth("manager"))
+      .expect(200);
+    expect(filteredReports.body).toMatchObject({
+      data: [expect.objectContaining({ id: reportId, status: "APPROVED" })],
+      meta: { total: 1 },
+    });
+    const draftFilter = await request(http)
+      .get("/api/v1/manager/reports")
+      .query({ status: "DRAFT" })
+      .set(auth("manager"))
+      .expect(200);
+    expect(draftFilter.body).toMatchObject({ data: [], meta: { total: 0 } });
+  });
+
+  it("returns all dashboard analytics with validated filters and no draft-content leaks", async () => {
+    const commonQuery = dates;
+    const [distribution, trends, time, activity, approvedRoster] =
+      await Promise.all([
+        request(http)
+          .get("/api/v1/manager/dashboard/status-distribution")
+          .query(commonQuery)
+          .set(auth("manager"))
+          .expect(200),
+        request(http)
+          .get("/api/v1/manager/dashboard/task-trends")
+          .query({ weeks: 1, weekEnd: dates.weekEnd })
+          .set(auth("manager"))
+          .expect(200),
+        request(http)
+          .get("/api/v1/manager/dashboard/time-distribution")
+          .query(commonQuery)
+          .set(auth("manager"))
+          .expect(200),
+        request(http)
+          .get("/api/v1/manager/dashboard/activity")
+          .query({ ...commonQuery, limit: 1 })
+          .set(auth("manager"))
+          .expect(200),
+        request(http)
+          .get("/api/v1/manager/dashboard/roster")
+          .query({ ...commonQuery, status: "APPROVED", page: 1, limit: 1 })
+          .set(auth("manager"))
+          .expect(200),
+      ]);
+    expect(distribution.body.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "APPROVED", count: 1 }),
+        expect.objectContaining({ status: "NOT_STARTED", count: 2 }),
+      ]),
+    );
+    expect(trends.body.data).toEqual([
+      expect.objectContaining({ week: dates.weekStart, total: 1, completed: 1 }),
+    ]);
+    expect(time.body.data).toEqual(
+      expect.arrayContaining([
+        { type: "DEVELOPMENT", totalMinutes: 75 },
+        { type: "TESTING", totalMinutes: 45 },
+      ]),
+    );
+    expect(activity.body.data).toHaveLength(1);
+    expect(activity.body.data[0]).toMatchObject({
+      action: "APPROVED",
+      report: { id: reportId },
+    });
+    expect(approvedRoster.body).toMatchObject({
+      data: [expect.objectContaining({ userId: member.id, status: "APPROVED" })],
+      meta: { total: 1 },
+    });
+    await request(http)
+      .get("/api/v1/manager/dashboard/task-trends")
+      .query({ weeks: 0 })
+      .set(auth("manager"))
+      .expect(400);
+    await request(http)
+      .get("/api/v1/manager/dashboard/summary")
+      .query({ weekStart: "2026-09-07", weekEnd: "2026-08-31" })
+      .set(auth("manager"))
+      .expect(400);
   });
 
   it("supports project clearing and corrections retaining archived projects", async () => {
