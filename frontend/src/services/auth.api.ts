@@ -1,28 +1,36 @@
-import apiClient from "@/lib/api-client";
+import apiClient, { clearSession, setAccessToken } from "@/lib/api-client";
+import { API_SETTINGS } from "@/lib/settings";
 import type { AuthResponse, User } from "@/types";
 
 export const authApi = {
   async register(data: { name: string; email: string; password: string }): Promise<AuthResponse> {
-    const response = await apiClient.post("/auth/register", data);
+    const response = await apiClient.post(API_SETTINGS.authEndpoints.register, data);
+    setAccessToken(response.data.data.accessToken);
     return response.data.data;
   },
 
   async login(data: { email: string; password: string }): Promise<AuthResponse> {
-    const response = await apiClient.post("/auth/login", data);
+    const response = await apiClient.post(API_SETTINGS.authEndpoints.login, data);
+    setAccessToken(response.data.data.accessToken);
     return response.data.data;
   },
 
-  async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
-    const response = await apiClient.post("/auth/refresh", { refreshToken });
+  async refresh(): Promise<{ accessToken: string }> {
+    const response = await apiClient.post(API_SETTINGS.authEndpoints.refresh);
+    setAccessToken(response.data.data.accessToken);
     return response.data.data;
   },
 
-  async logout(refreshToken: string): Promise<void> {
-    await apiClient.post("/auth/logout", { refreshToken });
+  async logout(): Promise<void> {
+    try {
+      await apiClient.post(API_SETTINGS.authEndpoints.logout);
+    } finally {
+      clearSession();
+    }
   },
 
   async getMe(): Promise<User> {
-    const response = await apiClient.get("/auth/me");
+    const response = await apiClient.get(API_SETTINGS.authEndpoints.currentUser);
     return response.data.data;
   },
 };

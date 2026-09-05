@@ -1,0 +1,20 @@
+/** @type {import('eslint').Linter.Config} */
+module.exports = {
+  root: true,
+  env: {
+    node: true,
+    jest: true,
+  },
+  parser: '@typescript-eslint/parser',
+  parserOptions: {
+    project: './tsconfig.json',
+    tsconfigRootDir: __dirname,
+    sourceType: 'module',
+  },
+  plugins: ['@typescript-eslint'],
+  extends: ['plugin:@typescript-eslint/recommended', 'prettier'],
+  ignorePatterns: ['.eslintrc.cjs', 'dist', 'node_modules'],
+  rules: {
+    '@typescript-eslint/no-explicit-any': 'warn',
+  },
+};

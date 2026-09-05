@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { Prisma, TaskStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { ReportStatus, UserRole } from '../common/enums';
 import { DASHBOARD_SETTINGS } from '../settings';
@@ -82,7 +83,7 @@ export class DashboardService {
       }
       acc[weekKey].total += report.tasks.length;
       acc[weekKey].completed += report.tasks.filter(
-        (t) => t.status === (DASHBOARD_SETTINGS.completedTaskStatus as any),
+        (t) => t.status === (DASHBOARD_SETTINGS.completedTaskStatus as TaskStatus),
       ).length;
       return acc;
     }, {} as Record<string, { week: string; total: number; completed: number }>);
@@ -165,9 +166,20 @@ export class DashboardService {
   }
 
   private buildDateFilter(weekStart?: string, weekEnd?: string) {
-    const filter: any = {};
-    if (weekStart) filter.weekStart = { gte: new Date(weekStart) };
-    if (weekEnd) filter.weekEnd = { lte: new Date(weekEnd) };
+    const filter: Prisma.ReportWhereInput = {};
+    const start = weekStart ? new Date(weekStart) : undefined;
+    const end = weekEnd ? this.endOfDay(weekEnd) : undefined;
+    if (start && end && end < start) {
+      throw new BadRequestException(DASHBOARD_SETTINGS.messages.invalidDateRange);
+    }
+    if (start) filter.weekStart = { gte: start };
+    if (end) filter.weekEnd = { lte: end };
     return filter;
+  }
+
+  private endOfDay(value: string) {
+    const date = new Date(value);
+    date.setUTCHours(23, 59, 59, 999);
+    return date;
   }
 }

@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 // ─── Backend Settings ───────────────────────────────────────
 // All configuration values are centralized here.
 // Environment variables take priority; these are fallback defaults.
@@ -11,6 +13,13 @@ const DB_PORT = process.env.DB_PORT || '5432';
 const DB_USER = process.env.DB_USER || 'postgres';
 const DB_PASSWORD = process.env.DB_PASSWORD || 'postgres';
 const DB_NAME = process.env.DB_NAME || 'weekly_report_db';
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const IS_PRODUCTION = NODE_ENV === 'production';
+const COOKIE_SAME_SITE = process.env.AUTH_COOKIE_SAME_SITE || (IS_PRODUCTION ? 'none' : 'lax');
+
+if (!['lax', 'strict', 'none'].includes(COOKIE_SAME_SITE)) {
+  throw new Error('AUTH_COOKIE_SAME_SITE must be lax, strict, or none.');
+}
 
 export const DB_SETTINGS = {
   host: DB_HOST,
@@ -29,7 +38,7 @@ export const SERVER_SETTINGS = {
   port: parseInt(process.env.PORT || '5000', 10),
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   apiPrefix: 'api/v1',
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv: NODE_ENV,
 } as const;
 
 // ─── JWT / Auth ─────────────────────────────────────────────
@@ -40,6 +49,24 @@ export const AUTH_SETTINGS = {
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   jwtRefreshExpiresInDays: 7,
   passwordHashRounds: 12,
+  refreshCookieName: 'weekly_report_refresh_token',
+  csrfHeaderName: 'x-requested-with',
+  csrfHeaderValue: 'weekly-report-web',
+  refreshCookie: {
+    httpOnly: true,
+    secure: IS_PRODUCTION || COOKIE_SAME_SITE === 'none',
+    sameSite: COOKIE_SAME_SITE as 'lax' | 'strict' | 'none',
+    path: '/api/v1/auth',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  },
+  allowSelfRegistration:
+    process.env.ALLOW_SELF_REGISTRATION === 'true' || !IS_PRODUCTION,
+  authRateLimit: {
+    ttlMilliseconds: 60_000,
+    loginAttempts: 5,
+    registrationAttempts: 3,
+    refreshAttempts: 20,
+  },
   messages: {
     invalidCredentials: 'Invalid credentials',
     accountDeactivated: 'Account is deactivated',
@@ -48,6 +75,9 @@ export const AUTH_SETTINGS = {
     usedRefreshToken: 'Refresh token has already been used',
     userNotFoundOrInactive: 'User not found or inactive',
     emailAlreadyRegistered: 'Email already registered',
+    selfRegistrationDisabled: 'Self-registration is not available.',
+    refreshTokenMissing: 'Refresh token is missing.',
+    invalidBrowserRequest: 'Invalid browser request.',
   },
 } as const;
 
@@ -56,6 +86,8 @@ export const AUTH_SETTINGS = {
 export const REPORT_SETTINGS = {
   defaultTaskPriority: 'MEDIUM',
   defaultTaskStatus: 'TODO',
+  maxItemsPerSection: 50,
+  minTasksForSubmission: 1,
   editableStatuses: [ReportStatus.DRAFT, ReportStatus.NEEDS_CORRECTION] as const,
   messages: {
     invalidWeekRange: 'Week end must be after or equal to week start',
@@ -66,6 +98,8 @@ export const REPORT_SETTINGS = {
     reportOwnershipDenied: 'You can only edit your own reports',
     reportReadOnly: 'Report is not editable in current status',
     reportMustBeSubmitted: 'Report is not in SUBMITTED status',
+    reportAlreadyExists: 'A weekly report already exists for this week.',
+    reportRequiresTask: 'Add at least one completed task before submitting.',
     cannotSubmitInStatus: (status: ReportStatus) => `Cannot submit report in ${status} status`,
     onlyOneKeyIssue: 'Only one blocker can be marked as the key issue',
     onlyOneKeyAchievement: 'Only one achievement can be marked as the key achievement',
@@ -144,6 +178,9 @@ export const DASHBOARD_SETTINGS = {
   defaultTaskTrendWeeks: 8,
   defaultActivityLimit: 20,
   completedTaskStatus: 'DONE',
+  messages: {
+    invalidDateRange: 'Week end must be after or equal to week start',
+  },
 } as const;
 
 // ─── Validation Limits ──────────────────────────────────────
@@ -159,6 +196,38 @@ export const VALIDATION_SETTINGS = {
   percentage: { min: 0, max: 100 },
   reviewCommentRequired: true,
 } as const;
+
+/** Fail fast rather than launching a production service with development credentials. */
+export function validateRuntimeConfiguration() {
+  if (!IS_PRODUCTION) return;
+
+  const insecureValues = new Set([
+    'dev-access-secret-change-in-production',
+    'dev-refresh-secret-change-in-production',
+    'change-me-to-a-random-access-secret',
+    'change-me-to-a-random-refresh-secret',
+  ]);
+  const missingOrInsecureSecrets =
+    !process.env.JWT_ACCESS_SECRET ||
+    !process.env.JWT_REFRESH_SECRET ||
+    insecureValues.has(process.env.JWT_ACCESS_SECRET) ||
+    insecureValues.has(process.env.JWT_REFRESH_SECRET) ||
+    process.env.JWT_ACCESS_SECRET === process.env.JWT_REFRESH_SECRET ||
+    process.env.JWT_ACCESS_SECRET.length < 32 ||
+    process.env.JWT_REFRESH_SECRET.length < 32;
+
+  if (missingOrInsecureSecrets) {
+    throw new Error('Production requires distinct JWT_ACCESS_SECRET and JWT_REFRESH_SECRET values of at least 32 characters.');
+  }
+
+  if (!process.env.DATABASE_URL) {
+    throw new Error('Production requires DATABASE_URL.');
+  }
+
+  if (AUTH_SETTINGS.refreshCookie.sameSite === 'none' && !AUTH_SETTINGS.refreshCookie.secure) {
+    throw new Error('Cross-site refresh cookies require the Secure attribute.');
+  }
+}
 
 // ─── Seed Data ──────────────────────────────────────────────
 export const SEED_SETTINGS = {

@@ -1,13 +1,13 @@
-import { IsOptional, IsString, IsDateString, IsEnum } from 'class-validator';
+import { IsOptional, IsDateString, IsEnum, IsUUID } from 'class-validator';
 import { PaginationDto } from '../../common/dto';
 
 export class ReportFilterDto extends PaginationDto {
   @IsOptional()
-  @IsString()
+  @IsUUID()
   userId?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   projectId?: string;
 
   @IsOptional()

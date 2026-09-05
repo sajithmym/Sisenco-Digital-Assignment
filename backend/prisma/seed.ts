@@ -9,6 +9,10 @@ async function hashPassword(password: string) {
 }
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Seeding is disabled in production.');
+  }
+
   console.log('🌱 Seeding database...');
 
   const password = await hashPassword(SEED_SETTINGS.defaultPassword);
@@ -44,9 +48,12 @@ async function main() {
 
   // ─── Projects ──────────────────────────────────────────
   const projects = await Promise.all(
-    SEED_SETTINGS.projects.map((p) =>
-      prisma.project.create({ data: { name: p.name, description: p.description } }),
-    ),
+    SEED_SETTINGS.projects.map(async (project) => {
+      const existingProject = await prisma.project.findFirst({
+        where: { name: project.name },
+      });
+      return existingProject || prisma.project.create({ data: project });
+    }),
   );
 
   console.log('✅ Projects created');
@@ -71,6 +78,12 @@ async function main() {
     for (let w = 0; w < SEED_SETTINGS.weeksToSeed; w++) {
       const weekStart = getWeekStart(w);
       const weekEnd = getWeekEnd(weekStart);
+      const existingReport = await prisma.report.findFirst({
+        where: { userId: member.id, weekStart },
+        select: { id: true },
+      });
+      if (existingReport) continue;
+
       const status =
         w === 0
           ? ReportStatus.SUBMITTED

@@ -133,6 +133,13 @@ export const FEATURE_FLAGS = {
 export const API_SETTINGS = {
   baseUrl:
     process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1',
+  authEndpoints: {
+    login: '/auth/login',
+    register: '/auth/register',
+    refresh: '/auth/refresh',
+    logout: '/auth/logout',
+    currentUser: '/auth/me',
+  },
 } as const;
 
 // ─── Pagination ─────────────────────────────────────────────
@@ -147,8 +154,12 @@ export const PAGINATION_SETTINGS = {
 
 // ─── Auth ───────────────────────────────────────────────────
 export const AUTH_SETTINGS = {
-  accessTokenKey: 'accessToken',
-  refreshTokenKey: 'refreshToken',
+  // Access tokens remain only in module memory. Refresh tokens are HttpOnly cookies,
+  // so browser JavaScript cannot read or exfiltrate them.
+  accessTokenStorage: 'memory',
+  refreshTokenStorage: 'httpOnly-cookie',
+  csrfHeaderName: 'X-Requested-With',
+  csrfHeaderValue: 'weekly-report-web',
 } as const;
 
 // ─── Validation ─────────────────────────────────────────────

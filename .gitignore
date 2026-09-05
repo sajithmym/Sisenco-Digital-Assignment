@@ -5,7 +5,6 @@ node_modules/
 .env
 .env.local
 .env.*.local
-package-lock.json
 
 # Build outputs
 dist/
@@ -34,7 +33,7 @@ pnpm-debug.log*
 # Testing
 coverage/
 
-# Prisma
+# Local Prisma migrations
 backend/prisma/migrations/
 
 # Misc

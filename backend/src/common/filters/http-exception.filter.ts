@@ -62,7 +62,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (exception instanceof Prisma.PrismaClientValidationError) {
       return {
         status: HttpStatus.BAD_REQUEST,
-        message: `Invalid data provided: ${exception.message.split('\n')[0]}`,
+        message:
+          SERVER_SETTINGS.nodeEnv === 'production'
+            ? 'Invalid data provided'
+            : `Invalid data provided: ${exception.message.split('\n')[0]}`,
         code: 'VALIDATION_ERROR',
       };
     }

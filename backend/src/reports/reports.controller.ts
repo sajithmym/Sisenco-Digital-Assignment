@@ -32,6 +32,7 @@ export class ReportsController {
   // ─── Member Endpoints ──────────────────────────────────
 
   @Post('reports')
+  @Roles(UserRole.TEAM_MEMBER)
   async create(@Req() req: RequestWithUser, @Body() dto: CreateReportDto) {
     try {
       const data = await this.reportsService.create(req.user.sub, dto);
@@ -43,6 +44,7 @@ export class ReportsController {
   }
 
   @Get('reports/my')
+  @Roles(UserRole.TEAM_MEMBER)
   async findMyReports(
     @Req() req: RequestWithUser,
     @Query() pagination: ReportFilterDto,
@@ -56,6 +58,7 @@ export class ReportsController {
   }
 
   @Get('reports/:id')
+  @Roles(UserRole.TEAM_MEMBER)
   async findById(@Param('id') id: string, @Req() req: RequestWithUser) {
     try {
       const data = await this.reportsService.findById(id, req.user.sub, req.user.role);
@@ -66,6 +69,7 @@ export class ReportsController {
   }
 
   @Patch('reports/:id')
+  @Roles(UserRole.TEAM_MEMBER)
   async update(
     @Param('id') id: string,
     @Req() req: RequestWithUser,
@@ -80,6 +84,7 @@ export class ReportsController {
   }
 
   @Post('reports/:id/submit')
+  @Roles(UserRole.TEAM_MEMBER)
   @HttpCode(HttpStatus.OK)
   async submit(@Param('id') id: string, @Req() req: RequestWithUser) {
     try {
@@ -91,6 +96,7 @@ export class ReportsController {
   }
 
   @Get('reports/:id/versions')
+  @Roles(UserRole.TEAM_MEMBER)
   async getVersionHistory(@Param('id') id: string, @Req() req: RequestWithUser) {
     try {
       await this.reportsService.findById(id, req.user.sub, req.user.role);

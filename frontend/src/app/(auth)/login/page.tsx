@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AUTH_SETTINGS, getRoleHomeRoute } from "@/lib/settings";
+import { getRoleHomeRoute } from "@/lib/settings";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,9 +32,6 @@ export default function LoginPage() {
 
     try {
       const response = await authApi.login(data);
-      localStorage.setItem(AUTH_SETTINGS.accessTokenKey, response.accessToken);
-      localStorage.setItem(AUTH_SETTINGS.refreshTokenKey, response.refreshToken);
-
       router.push(getRoleHomeRoute(response.user.role));
     } catch (err: any) {
       setError(err.response?.data?.message || "Login failed. Please try again.");

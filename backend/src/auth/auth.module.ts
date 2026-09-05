@@ -5,6 +5,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AUTH_SETTINGS } from '../settings';
+import type ms from 'ms';
 
 @Module({
   imports: [
@@ -12,7 +13,7 @@ import { AUTH_SETTINGS } from '../settings';
     JwtModule.register({
       secret: AUTH_SETTINGS.jwtAccessSecret,
       signOptions: {
-        expiresIn: AUTH_SETTINGS.jwtAccessExpiresIn,
+        expiresIn: AUTH_SETTINGS.jwtAccessExpiresIn as ms.StringValue,
       },
     }),
   ],

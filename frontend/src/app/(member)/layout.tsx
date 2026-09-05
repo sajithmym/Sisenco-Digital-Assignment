@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FileText, LayoutDashboard, History, LogOut, Menu, X } from "lucide-react";
 import { authApi } from "@/services/auth.api";
-import { APP_SETTINGS, AUTH_SETTINGS, ROUTES, UI_SETTINGS } from "@/lib/settings";
+import { APP_SETTINGS, ROUTES, UI_SETTINGS, USER_ROLES } from "@/lib/settings";
 import type { User } from "@/types";
 import { ConfirmationDialog } from "@/components/shared/confirmation-dialog";
 
@@ -25,13 +25,13 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   const [logoutConfirmationOpen, setLogoutConfirmationOpen] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem(AUTH_SETTINGS.accessTokenKey);
-    if (!token) {
-      router.push(ROUTES.login);
-      return;
-    }
-
-    authApi.getMe().then(setUser).catch(() => {
+    authApi.getMe().then((currentUser) => {
+      if (currentUser.role !== USER_ROLES.TEAM_MEMBER) {
+        router.push(ROUTES.managerDashboard);
+        return;
+      }
+      setUser(currentUser);
+    }).catch(() => {
       router.push(ROUTES.login);
     });
   }, [router]);
@@ -42,17 +42,11 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   }, [pathname]);
 
   const handleLogout = async () => {
-    const refreshToken = localStorage.getItem(AUTH_SETTINGS.refreshTokenKey);
-    if (refreshToken) {
-      try {
-        await authApi.logout(refreshToken);
-      } catch {
-        // The client should still clear expired or invalid local tokens.
-      }
+    try {
+      await authApi.logout();
+    } finally {
+      router.push(ROUTES.login);
     }
-    localStorage.removeItem(AUTH_SETTINGS.accessTokenKey);
-    localStorage.removeItem(AUTH_SETTINGS.refreshTokenKey);
-    router.push(ROUTES.login);
   };
 
   return (

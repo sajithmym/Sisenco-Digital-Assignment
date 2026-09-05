@@ -31,7 +31,7 @@ export default function ManagerProjectsPage() {
   const [data, setData] = useState<PaginatedResponse<Project> | null>(null);
   const [filters, setFilters] = useState<ProjectFilters>(DEFAULT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<ProjectFilters>(DEFAULT_FILTERS);
-  const [page, setPage] = useState(PAGINATION_SETTINGS.defaultPage);
+  const [page, setPage] = useState<number>(PAGINATION_SETTINGS.defaultPage);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);

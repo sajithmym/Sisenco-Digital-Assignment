@@ -11,11 +11,13 @@ import {
   MaxLength,
   IsBoolean,
   IsUUID,
+  ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { REPORT_SETTINGS } from '../../settings';
 
 class CreateTaskDto {
-  @IsUUID()
+  @IsString()
   @MaxLength(500)
   taskName: string;
 
@@ -101,7 +103,7 @@ class CreateWorkHourDto {
 
 export class CreateReportDto {
   @IsOptional()
-  @IsString()
+  @IsUUID()
   projectId?: string;
 
   @IsDateString()
@@ -117,30 +119,35 @@ export class CreateReportDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(REPORT_SETTINGS.maxItemsPerSection)
   @ValidateNested({ each: true })
   @Type(() => CreateTaskDto)
   tasks?: CreateTaskDto[];
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(REPORT_SETTINGS.maxItemsPerSection)
   @ValidateNested({ each: true })
   @Type(() => CreateNextWeekTaskDto)
   nextWeekTasks?: CreateNextWeekTaskDto[];
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(REPORT_SETTINGS.maxItemsPerSection)
   @ValidateNested({ each: true })
   @Type(() => CreateBlockerDto)
   blockers?: CreateBlockerDto[];
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(REPORT_SETTINGS.maxItemsPerSection)
   @ValidateNested({ each: true })
   @Type(() => CreateAchievementDto)
   achievements?: CreateAchievementDto[];
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(REPORT_SETTINGS.maxItemsPerSection)
   @ValidateNested({ each: true })
   @Type(() => CreateWorkHourDto)
   workHours?: CreateWorkHourDto[];

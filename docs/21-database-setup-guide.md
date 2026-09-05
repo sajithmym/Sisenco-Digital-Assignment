@@ -98,6 +98,8 @@ JWT_ACCESS_SECRET=your-access-secret-key-change-in-production
 JWT_REFRESH_SECRET=your-refresh-secret-key-change-in-production
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
+AUTH_COOKIE_SAME_SITE=lax
+ALLOW_SELF_REGISTRATION=true
 
 # ─── Server ─────────────────────────────────────────────────
 PORT=5000
@@ -161,6 +163,8 @@ npx prisma generate
 ```bash
 npx prisma migrate dev --name init
 ```
+
+For production, use `npx prisma migrate deploy`. For an existing development database created before migrations were committed, back it up and run `npx prisma migrate reset` before applying the new migration history.
 
 ### Tables Created (12)
 

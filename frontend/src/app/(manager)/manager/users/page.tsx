@@ -32,7 +32,7 @@ export default function ManagerUsersPage() {
   const [data, setData] = useState<PaginatedResponse<User> | null>(null);
   const [filters, setFilters] = useState<UserFilters>(DEFAULT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<UserFilters>(DEFAULT_FILTERS);
-  const [page, setPage] = useState(PAGINATION_SETTINGS.defaultPage);
+  const [page, setPage] = useState<number>(PAGINATION_SETTINGS.defaultPage);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);

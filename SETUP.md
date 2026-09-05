@@ -22,6 +22,10 @@ Step-by-step guide to run **Weekly Report Generator** locally — frontend and b
 docker-compose up -d
 ```
 
+`npm run db:fresh` creates and checks the database through the application’s
+PostgreSQL driver. You do not need to install PostgreSQL or add `psql` to your
+Windows PATH when using Docker.
+
 **Option B — Local PostgreSQL:**
 
 Make sure PostgreSQL is running on `localhost:5432` with user `postgres`.
@@ -77,6 +81,8 @@ JWT_ACCESS_SECRET=change-me-to-a-random-access-secret   # ← change!
 JWT_REFRESH_SECRET=change-me-to-a-random-refresh-secret # ← change!
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
+AUTH_COOKIE_SAME_SITE=lax
+ALLOW_SELF_REGISTRATION=true
 ```
 
 > **Important:** Prisma expands `DATABASE_URL` from the individual values above. Update each database field once; if `DB_PASSWORD` contains URL-reserved characters such as `@`, `:`, `/`, or `#`, URL-encode that value first.
@@ -227,6 +233,16 @@ super({
 ```
 
 Refresh tokens are additionally stored in the `refresh_tokens` table and rotated on every refresh.
+
+The refresh token is sent only as a Secure, HttpOnly cookie and is stored as a hash in the database. Browser JavaScript never receives it; access tokens are kept only in memory.
+
+## Production safety
+
+- Set `NODE_ENV=production`, distinct random JWT secrets of at least 32 characters, and a real `DATABASE_URL`.
+- Set `ALLOW_SELF_REGISTRATION=false` for an internal deployment.
+- When frontend and API use different sites, set `AUTH_COOKIE_SAME_SITE=none`; both must use HTTPS.
+- Deploy database changes with `npx prisma migrate deploy`. Do not use `db:init`, `db:fresh`, or seed data in production.
+- For an existing local database created before migrations were committed, back it up and use `npx prisma migrate reset` during development before applying this initial migration.
 
 ---
 

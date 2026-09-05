@@ -7,6 +7,7 @@ describe('AuthService.refreshTokens', () => {
     id: 'user-1',
     email: 'member@example.com',
     role: 'TEAM_MEMBER',
+    isActive: true,
   };
 
   const createService = () => {
@@ -40,7 +41,7 @@ describe('AuthService.refreshTokens', () => {
   const createTokenRecord = (expiresAt = new Date(Date.now() + 60_000)) => ({
     id: 'token-1',
     userId: user.id,
-    token: refreshToken,
+    tokenHash: 'hashed-refresh-token',
     expiresAt,
     user,
   });
@@ -85,7 +86,7 @@ describe('AuthService.refreshTokens', () => {
       refreshToken: 'new-refresh-token',
     });
     expect(transaction.refreshToken.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ userId: user.id, token: 'new-refresh-token' }),
+      data: expect.objectContaining({ userId: user.id, tokenHash: expect.any(String) }),
     }));
   });
 });

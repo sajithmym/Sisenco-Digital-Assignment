@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { createHash } from 'crypto';
+import type ms from 'ms';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { AUTH_SETTINGS, USER_SETTINGS } from '../settings';
@@ -19,8 +21,9 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
+    const normalizedEmail = dto.email.trim().toLowerCase();
     const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -36,8 +39,8 @@ export class AuthService {
     try {
       user = await this.prisma.user.create({
         data: {
-          name: dto.name,
-          email: dto.email,
+          name: dto.name.trim(),
+          email: normalizedEmail,
           passwordHash,
           role: USER_SETTINGS.defaultRole,
         },
@@ -67,8 +70,9 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
+    const normalizedEmail = email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (!user) {
@@ -111,7 +115,7 @@ export class AuthService {
     }
 
     const tokenRecord = await this.prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
+      where: { tokenHash: this.hashRefreshToken(refreshToken) },
       include: { user: true },
     });
 
@@ -129,10 +133,15 @@ export class AuthService {
     }
 
     const user = tokenRecord.user;
+    if (!user.isActive) {
+      await this.prisma.refreshToken.deleteMany({ where: { userId: user.id } });
+      throw new ForbiddenException(AUTH_SETTINGS.messages.accountDeactivated);
+    }
+
     return this.prisma.$transaction(async (transaction) => {
       // Atomic compare-and-delete prevents a concurrent refresh from replaying the same token.
       const consumedToken = await transaction.refreshToken.deleteMany({
-        where: { id: tokenRecord.id, token: refreshToken },
+        where: { id: tokenRecord.id, tokenHash: this.hashRefreshToken(refreshToken) },
       });
 
       if (consumedToken.count !== 1) {
@@ -143,7 +152,7 @@ export class AuthService {
       await transaction.refreshToken.create({
         data: {
           userId: user.id,
-          token: tokens.refreshToken,
+          tokenHash: this.hashRefreshToken(tokens.refreshToken),
           expiresAt: this.getRefreshTokenExpiry(),
         },
       });
@@ -154,7 +163,7 @@ export class AuthService {
 
   async logout(refreshToken: string) {
     await this.prisma.refreshToken.deleteMany({
-      where: { token: refreshToken },
+      where: { tokenHash: this.hashRefreshToken(refreshToken) },
     });
   }
 
@@ -184,11 +193,11 @@ export class AuthService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        expiresIn: AUTH_SETTINGS.jwtAccessExpiresIn,
+        expiresIn: AUTH_SETTINGS.jwtAccessExpiresIn as ms.StringValue,
       }),
       this.jwtService.signAsync(payload, {
         secret: AUTH_SETTINGS.jwtRefreshSecret,
-        expiresIn: AUTH_SETTINGS.jwtRefreshExpiresIn,
+        expiresIn: AUTH_SETTINGS.jwtRefreshExpiresIn as ms.StringValue,
       }),
     ]);
 
@@ -196,10 +205,15 @@ export class AuthService {
   }
 
   private async storeRefreshToken(userId: string, token: string) {
+    // Expired rows are never useful and should not accumulate indefinitely.
+    await this.prisma.refreshToken.deleteMany({
+      where: { expiresAt: { lt: new Date() } },
+    });
+
     await this.prisma.refreshToken.create({
       data: {
         userId,
-        token,
+        tokenHash: this.hashRefreshToken(token),
         expiresAt: this.getRefreshTokenExpiry(),
       },
     });
@@ -209,5 +223,9 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + AUTH_SETTINGS.jwtRefreshExpiresInDays);
     return expiresAt;
+  }
+
+  private hashRefreshToken(token: string) {
+    return createHash('sha256').update(token).digest('hex');
   }
 }

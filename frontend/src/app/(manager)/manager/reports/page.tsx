@@ -38,7 +38,7 @@ export default function ManagerReportsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
-  const [page, setPage] = useState(PAGINATION_SETTINGS.defaultPage);
+  const [page, setPage] = useState<number>(PAGINATION_SETTINGS.defaultPage);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterError, setFilterError] = useState<string | null>(null);

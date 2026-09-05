@@ -1,22 +1,27 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
+import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters';
-import { SERVER_SETTINGS } from './settings';
+import { AUTH_SETTINGS, SERVER_SETTINGS, validateRuntimeConfiguration } from './settings';
 
 async function bootstrap() {
+  validateRuntimeConfiguration();
   const app = await NestFactory.create(AppModule);
 
   const { port, frontendUrl, apiPrefix } = SERVER_SETTINGS;
 
   // Security
   app.use(helmet());
+  app.use(cookieParser());
 
   // CORS
   app.enableCors({
     origin: frontendUrl,
     credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization', AUTH_SETTINGS.csrfHeaderName],
   });
 
   // Global prefix

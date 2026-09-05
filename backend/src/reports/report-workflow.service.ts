@@ -4,9 +4,21 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { ReportStatus, ReviewAction } from '../common/enums';
 import { REPORT_SETTINGS } from '../settings';
+
+type SnapshotReport = Prisma.ReportGetPayload<{
+  include: {
+    tasks: true;
+    nextWeekTasks: true;
+    blockers: true;
+    achievements: true;
+    workHours: true;
+    project: true;
+  };
+}>;
 
 @Injectable()
 export class ReportWorkflowService {
@@ -16,51 +28,56 @@ export class ReportWorkflowService {
    * Submit a report (DRAFT or NEEDS_CORRECTION → SUBMITTED)
    */
   async submit(reportId: string, userId: string) {
-    const report = await this.prisma.report.findUnique({
-      where: { id: reportId },
-      include: {
-        tasks: true,
-        nextWeekTasks: true,
-        blockers: true,
-        achievements: true,
-        workHours: true,
-        project: true,
-      },
-    });
-
-    if (!report) throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
-    if (report.userId !== userId) throw new ForbiddenException(REPORT_SETTINGS.messages.reportOwnershipDenied);
-
-    if (!REPORT_SETTINGS.editableStatuses.includes(report.status as ReportStatus.DRAFT | ReportStatus.NEEDS_CORRECTION)) {
-      throw new BadRequestException(
-        REPORT_SETTINGS.messages.cannotSubmitInStatus(report.status as ReportStatus),
-      );
-    }
-
-    // Create version snapshot in a transaction
-    const nextVersion = report.latestVersionNumber + 1;
-    const snapshot = this.createSnapshot(report);
-
     return this.prisma.$transaction(async (tx) => {
-      // Create immutable version
-      await tx.reportVersion.create({
-        data: {
-          reportId,
-          versionNumber: nextVersion,
-          snapshotJson: snapshot,
-          createdById: userId,
+      const report = await tx.report.findUnique({
+        where: { id: reportId },
+        include: {
+          tasks: true,
+          nextWeekTasks: true,
+          blockers: true,
+          achievements: true,
+          workHours: true,
+          project: true,
         },
       });
 
-      // Update report status
-      return tx.report.update({
-        where: { id: reportId },
+      if (!report) throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
+      if (report.userId !== userId) throw new ForbiddenException(REPORT_SETTINGS.messages.reportOwnershipDenied);
+      if (!REPORT_SETTINGS.editableStatuses.includes(report.status as ReportStatus.DRAFT | ReportStatus.NEEDS_CORRECTION)) {
+        throw new BadRequestException(REPORT_SETTINGS.messages.cannotSubmitInStatus(report.status as ReportStatus));
+      }
+      if (report.tasks.length < REPORT_SETTINGS.minTasksForSubmission) {
+        throw new BadRequestException(REPORT_SETTINGS.messages.reportRequiresTask);
+      }
+
+      const nextVersion = report.latestVersionNumber + 1;
+      const transitioned = await tx.report.updateMany({
+        where: {
+          id: reportId,
+          userId,
+          latestVersionNumber: report.latestVersionNumber,
+          status: { in: [...REPORT_SETTINGS.editableStatuses] },
+        },
         data: {
           status: ReportStatus.SUBMITTED,
           latestVersionNumber: nextVersion,
           submittedAt: new Date(),
         },
       });
+      if (transitioned.count !== 1) {
+        throw new BadRequestException(REPORT_SETTINGS.messages.reportReadOnly);
+      }
+
+      await tx.reportVersion.create({
+        data: {
+          reportId,
+          versionNumber: nextVersion,
+          snapshotJson: this.createSnapshot(report),
+          createdById: userId,
+        },
+      });
+
+      return tx.report.findUniqueOrThrow({ where: { id: reportId } });
     });
   }
 
@@ -72,25 +89,25 @@ export class ReportWorkflowService {
       throw new BadRequestException(REPORT_SETTINGS.messages.commentRequired);
     }
 
-    const report = await this.prisma.report.findUnique({
-      where: { id: reportId },
-    });
-
-    if (!report) throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
-    if (report.status !== ReportStatus.SUBMITTED) {
-      throw new BadRequestException(REPORT_SETTINGS.messages.reportMustBeSubmitted);
-    }
-
-    // Find the version being reviewed
-    const version = await this.prisma.reportVersion.findFirst({
-      where: {
-        reportId,
-        versionNumber: report.latestVersionNumber,
-      },
-    });
-
     return this.prisma.$transaction(async (tx) => {
-      // Create review record
+      const report = await tx.report.findUnique({ where: { id: reportId } });
+      if (!report) throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
+      if (report.status !== ReportStatus.SUBMITTED) {
+        throw new BadRequestException(REPORT_SETTINGS.messages.reportMustBeSubmitted);
+      }
+
+      const version = await tx.reportVersion.findFirst({
+        where: { reportId, versionNumber: report.latestVersionNumber },
+      });
+
+      const transitioned = await tx.report.updateMany({
+        where: { id: reportId, status: ReportStatus.SUBMITTED },
+        data: { status: ReportStatus.NEEDS_CORRECTION },
+      });
+      if (transitioned.count !== 1) {
+        throw new BadRequestException(REPORT_SETTINGS.messages.reportMustBeSubmitted);
+      }
+
       await tx.review.create({
         data: {
           reportId,
@@ -101,11 +118,7 @@ export class ReportWorkflowService {
         },
       });
 
-      // Update report status
-      return tx.report.update({
-        where: { id: reportId },
-        data: { status: ReportStatus.NEEDS_CORRECTION },
-      });
+      return tx.report.findUniqueOrThrow({ where: { id: reportId } });
     });
   }
 
@@ -113,24 +126,25 @@ export class ReportWorkflowService {
    * Manager approves report (SUBMITTED → APPROVED)
    */
   async approve(reportId: string, reviewerId: string) {
-    const report = await this.prisma.report.findUnique({
-      where: { id: reportId },
-    });
-
-    if (!report) throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
-    if (report.status !== ReportStatus.SUBMITTED) {
-      throw new BadRequestException(REPORT_SETTINGS.messages.reportMustBeSubmitted);
-    }
-
-    const version = await this.prisma.reportVersion.findFirst({
-      where: {
-        reportId,
-        versionNumber: report.latestVersionNumber,
-      },
-    });
-
     return this.prisma.$transaction(async (tx) => {
-      // Create approval review
+      const report = await tx.report.findUnique({ where: { id: reportId } });
+      if (!report) throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
+      if (report.status !== ReportStatus.SUBMITTED) {
+        throw new BadRequestException(REPORT_SETTINGS.messages.reportMustBeSubmitted);
+      }
+
+      const version = await tx.reportVersion.findFirst({
+        where: { reportId, versionNumber: report.latestVersionNumber },
+      });
+
+      const transitioned = await tx.report.updateMany({
+        where: { id: reportId, status: ReportStatus.SUBMITTED },
+        data: { status: ReportStatus.APPROVED, approvedAt: new Date() },
+      });
+      if (transitioned.count !== 1) {
+        throw new BadRequestException(REPORT_SETTINGS.messages.reportMustBeSubmitted);
+      }
+
       await tx.review.create({
         data: {
           reportId,
@@ -140,14 +154,7 @@ export class ReportWorkflowService {
         },
       });
 
-      // Update report status
-      return tx.report.update({
-        where: { id: reportId },
-        data: {
-          status: ReportStatus.APPROVED,
-          approvedAt: new Date(),
-        },
-      });
+      return tx.report.findUniqueOrThrow({ where: { id: reportId } });
     });
   }
 
@@ -169,7 +176,7 @@ export class ReportWorkflowService {
     });
   }
 
-  private createSnapshot(report: any) {
+  private createSnapshot(report: SnapshotReport) {
     return {
       id: report.id,
       userId: report.userId,

@@ -197,5 +197,4 @@ export interface ApiPaginatedResponse<T> extends ApiResponse<T[]> {
 export interface AuthResponse {
   user: User;
   accessToken: string;
-  refreshToken: string;
 }
