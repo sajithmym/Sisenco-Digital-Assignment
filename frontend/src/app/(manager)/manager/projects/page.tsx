@@ -32,6 +32,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
 import { PAGINATION_SETTINGS } from "@/lib/settings";
+import { getErrorMessage } from "@/lib/utils";
 import type { PaginatedResponse, Project } from "@/types";
 
 type ProjectForm = { name: string; description: string };
@@ -113,8 +114,8 @@ export default function ManagerProjectsPage() {
       }
       setFormOpen(false);
       fetchProjects();
-    } catch (err: any) {
-      const message = err.response?.data?.message || "Please try again.";
+    } catch (error) {
+      const message = getErrorMessage(error, "Please try again.");
       setFormError(message);
       toast({
         variant: "error",
@@ -147,11 +148,11 @@ export default function ManagerProjectsPage() {
       }
       setStatusProject(null);
       fetchProjects();
-    } catch (err: any) {
+    } catch (error) {
       toast({
         variant: "error",
         title: "Could not update project",
-        description: err.response?.data?.message || "Please try again.",
+        description: getErrorMessage(error, "Please try again."),
       });
     } finally {
       setUpdatingStatus(false);

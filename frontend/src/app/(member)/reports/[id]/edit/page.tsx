@@ -12,6 +12,7 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { useToast } from "@/components/ui/toast";
 import type { Report } from "@/types";
 import { REPORT_STATUSES } from "@/constants";
+import { getErrorMessage } from "@/lib/utils";
 
 export default function EditReportPage() {
   const { id } = useParams<{ id: string }>();
@@ -35,11 +36,11 @@ export default function EditReportPage() {
         description: "Your changes are ready for submission.",
       });
       router.push(`/reports/${id}`);
-    } catch (err: any) {
+    } catch (error) {
       toast({
         variant: "error",
         title: "Could not save report",
-        description: err.response?.data?.message || "Please try again.",
+        description: getErrorMessage(error, "Please try again."),
       });
     } finally {
       setSaving(false);

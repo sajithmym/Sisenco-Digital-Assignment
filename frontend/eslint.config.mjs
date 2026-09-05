@@ -12,5 +12,5 @@ export default defineConfig([
       'react-hooks/incompatible-library': 'warn',
     },
   },
-  globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts']),
+  globalIgnores(['.next/**', 'out/**', 'build/**', 'coverage/**', 'next-env.d.ts']),
 ]);

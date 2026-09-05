@@ -7,6 +7,7 @@ import type { ReportFormData } from "@/features/reports/schemas/report.schema";
 import { PageHeader } from "@/components/shared/page-header";
 import { useToast } from "@/components/ui/toast";
 import { useState } from "react";
+import { getErrorMessage } from "@/lib/utils";
 
 export default function NewReportPage() {
   const router = useRouter();
@@ -19,8 +20,8 @@ export default function NewReportPage() {
       const report = await reportsApi.create(data);
       toast({ variant: "success", title: "Draft created", description: "You can keep editing it until you submit." });
       router.push(`/reports/${report.id}`);
-    } catch (error: any) {
-      toast({ variant: "error", title: "Could not create draft", description: error.response?.data?.message || "Please review the form and try again." });
+    } catch (error) {
+      toast({ variant: "error", title: "Could not create draft", description: getErrorMessage(error, "Please review the form and try again.") });
     } finally { setSaving(false); }
   };
 

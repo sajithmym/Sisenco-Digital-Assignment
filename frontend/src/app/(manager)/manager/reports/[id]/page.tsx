@@ -26,7 +26,7 @@ import {
   ReportContent,
   ReportHistory,
 } from "@/features/reports/components/report-content";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getErrorMessage } from "@/lib/utils";
 import type { Report } from "@/types";
 import { REPORT_STATUSES } from "@/constants";
 
@@ -62,11 +62,11 @@ export default function ManagerReportDetailPage() {
       });
       setApproveConfirmationOpen(false);
       fetchReport();
-    } catch (err: any) {
+    } catch (error) {
       toast({
         variant: "error",
         title: "Could not approve report",
-        description: err.response?.data?.message || "Please try again.",
+        description: getErrorMessage(error, "Please try again."),
       });
     } finally {
       setActionLoading(false);
@@ -86,11 +86,11 @@ export default function ManagerReportDetailPage() {
         description: "The member can now edit and resubmit the report.",
       });
       fetchReport();
-    } catch (err: any) {
+    } catch (error) {
       toast({
         variant: "error",
         title: "Could not request changes",
-        description: err.response?.data?.message || "Please try again.",
+        description: getErrorMessage(error, "Please try again."),
       });
     } finally {
       setActionLoading(false);

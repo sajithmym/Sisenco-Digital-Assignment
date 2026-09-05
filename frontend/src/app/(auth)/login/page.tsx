@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRoleHomeRoute } from "@/lib/settings";
+import { getErrorMessage } from "@/lib/utils";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,8 +34,8 @@ export default function LoginPage() {
     try {
       const response = await authApi.login(data);
       router.push(getRoleHomeRoute(response.user.role));
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Login failed. Please try again.");
+    } catch (error) {
+      setError(getErrorMessage(error, "Login failed. Please try again."));
     } finally {
       setLoading(false);
     }

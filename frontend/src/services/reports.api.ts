@@ -1,12 +1,16 @@
 import apiClient from "@/lib/api-client";
 import type { Report, PaginatedResponse, ReportVersion } from "@/types";
+import type { ReportFormData } from "@/features/reports/schemas/report.schema";
+
+export type CreateReportPayload = ReportFormData;
+export type UpdateReportPayload = Partial<ReportFormData>;
 
 export const reportsApi = {
   async getMySummary(): Promise<Record<string, number>> {
     const response = await apiClient.get("/reports/my/summary");
     return response.data.data;
   },
-  async create(data: any): Promise<Report> {
+  async create(data: CreateReportPayload): Promise<Report> {
     const response = await apiClient.post("/reports", data);
     return response.data.data;
   },
@@ -24,7 +28,7 @@ export const reportsApi = {
     return response.data.data;
   },
 
-  async update(id: string, data: any): Promise<Report> {
+  async update(id: string, data: UpdateReportPayload): Promise<Report> {
     const response = await apiClient.patch(`/reports/${id}`, data);
     return response.data.data;
   },

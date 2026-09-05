@@ -14,7 +14,7 @@ import {
   ReportContent,
   ReportHistory,
 } from "@/features/reports/components/report-content";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getErrorMessage } from "@/lib/utils";
 import type { Report } from "@/types";
 import { ConfirmationDialog } from "@/components/shared/confirmation-dialog";
 import { useToast } from "@/components/ui/toast";
@@ -50,11 +50,11 @@ export default function ReportDetailPage() {
       });
       setShowSubmitConfirmation(false);
       fetchReport();
-    } catch (err: any) {
+    } catch (error) {
       toast({
         variant: "error",
         title: "Could not submit report",
-        description: err.response?.data?.message || "Please try again.",
+        description: getErrorMessage(error, "Please try again."),
       });
     } finally {
       setSubmitting(false);

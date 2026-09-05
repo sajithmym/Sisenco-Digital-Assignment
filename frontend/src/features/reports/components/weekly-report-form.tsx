@@ -169,7 +169,10 @@ export function WeeklyReportForm({
               </Field>
               <Field className="md:col-span-2" label="Priority">
                 <Select
-                  value={values.tasks?.[index]?.priority}
+                  value={
+                    values.tasks?.[index]?.priority ??
+                    REPORT_SETTINGS.defaultTaskPriority
+                  }
                   onValueChange={(value) =>
                     setValue(
                       `tasks.${index}.priority`,
@@ -191,7 +194,10 @@ export function WeeklyReportForm({
               </Field>
               <Field className="md:col-span-2" label="Status">
                 <Select
-                  value={values.tasks?.[index]?.status}
+                  value={
+                    values.tasks?.[index]?.status ??
+                    REPORT_SETTINGS.defaultTaskStatus
+                  }
                   onValueChange={(value) =>
                     setValue(
                       `tasks.${index}.status`,
@@ -438,7 +444,10 @@ export function WeeklyReportForm({
             >
               <Field label="Category">
                 <Select
-                  value={values.workHours?.[index]?.type}
+                  value={
+                    values.workHours?.[index]?.type ??
+                    REPORT_SETTINGS.defaultWorkHourType
+                  }
                   onValueChange={(value) =>
                     setValue(
                       `workHours.${index}.type`,

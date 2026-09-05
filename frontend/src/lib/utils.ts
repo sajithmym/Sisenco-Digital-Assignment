@@ -45,3 +45,20 @@ export function getWeekRange(date: Date): { start: Date; end: Date } {
   end.setHours(23, 59, 59, 999);
   return { start, end };
 }
+
+/** Return a safe API error message without relying on an untyped catch value. */
+export function getErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error !== "object" || error === null) return fallback;
+
+  const candidate = error as {
+    response?: { data?: { message?: unknown } };
+    message?: unknown;
+  };
+  const apiMessage = candidate.response?.data?.message;
+
+  if (typeof apiMessage === "string" && apiMessage.trim()) return apiMessage;
+  if (typeof candidate.message === "string" && candidate.message.trim())
+    return candidate.message;
+
+  return fallback;
+}

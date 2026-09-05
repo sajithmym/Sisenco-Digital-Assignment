@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getErrorMessage } from "@/lib/utils";
 
 export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
@@ -36,8 +37,8 @@ export default function RegisterPage() {
         password: data.password,
       });
       setRegisteredEmail(response.user.email);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Registration failed. Please try again.");
+    } catch (error) {
+      setError(getErrorMessage(error, "Registration failed. Please try again."));
     } finally {
       setLoading(false);
     }

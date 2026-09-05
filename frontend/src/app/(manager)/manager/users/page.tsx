@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { PAGINATION_SETTINGS, USER_ROLES } from "@/lib/settings";
+import { getErrorMessage } from "@/lib/utils";
 import { USER_ROLE_LABELS } from "@/constants";
 import type { PaginatedResponse, User } from "@/types";
 
@@ -127,8 +128,8 @@ export default function ManagerUsersPage() {
       setNewUser(EMPTY_USER);
       setCreateOpen(false);
       fetchUsers();
-    } catch (err: any) {
-      const message = err.response?.data?.message || "Please try again.";
+    } catch (error) {
+      const message = getErrorMessage(error, "Please try again.");
       setFormError(message);
       toast({
         variant: "error",
@@ -152,11 +153,11 @@ export default function ManagerUsersPage() {
       });
       setStatusUser(null);
       fetchUsers();
-    } catch (err: any) {
+    } catch (error) {
       toast({
         variant: "error",
         title: "Could not update access",
-        description: err.response?.data?.message || "Please try again.",
+        description: getErrorMessage(error, "Please try again."),
       });
     } finally {
       setUpdating(false);
@@ -175,11 +176,11 @@ export default function ManagerUsersPage() {
       });
       setRoleChange(null);
       fetchUsers();
-    } catch (err: any) {
+    } catch (error) {
       toast({
         variant: "error",
         title: "Could not update role",
-        description: err.response?.data?.message || "Please try again.",
+        description: getErrorMessage(error, "Please try again."),
       });
     } finally {
       setUpdating(false);

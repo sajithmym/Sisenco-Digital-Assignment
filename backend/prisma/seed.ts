@@ -47,14 +47,7 @@ async function main() {
     );
 
   for (const member of users.filter((user) => user.role === "TEAM_MEMBER")) {
-    for (let offset = 0; offset < 5; offset++) {
-      if (
-        offset === 4 &&
-        (await prisma.reportVersion.count({
-          where: { versionNumber: 2, report: { userId: member.id } },
-        }))
-      )
-        continue;
+    for (let offset = 0; offset < SEED_SETTINGS.weeksToSeed; offset++) {
       const approvedDemo = offset === 1 || offset === 4;
       const weekStart = new Date(weekOf().getTime() - offset * 7 * DAY_MS);
       const weekEnd = new Date(weekStart.getTime() + 6 * DAY_MS);
