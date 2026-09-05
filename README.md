@@ -93,6 +93,7 @@ Reads from environment variables with fallback defaults:
 | Setting | Env Variable | Default |
 |---------|-------------|---------|
 | API Base URL | `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:5000/api/v1` |
+| Application Timezone | `NEXT_PUBLIC_APP_TIMEZONE` | `Asia/Colombo` |
 
 ## Getting Started
 

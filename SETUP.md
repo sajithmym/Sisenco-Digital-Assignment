@@ -92,7 +92,7 @@ account in a pending state. An administrator must open **Users** and activate
 the account before the person can sign in. Set the value to `false` when all
 accounts should be created by an administrator or SSO.
 
-> **Important:** Prisma expands `DATABASE_URL` from the individual values above. Update each database field once; if `DB_PASSWORD` contains URL-reserved characters such as `@`, `:`, `/`, or `#`, URL-encode that value first.
+> **Important:** Keep the individual `DB_*` values unencoded. If credentials contain URL-reserved characters such as `@`, `:`, `/`, or `#`, replace `DATABASE_URL` with a full literal connection URL containing encoded credentials so Prisma and the backend use the same URL. Quote individual values containing `#` or spaces.
 
 ### 2.4 Generate JWT secrets
 
@@ -159,6 +159,7 @@ Open `.env.local` — change the API URL if your backend runs elsewhere:
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:5000/api/v1
+NEXT_PUBLIC_APP_TIMEZONE=Asia/Colombo
 ```
 
 ### 3.4 Start the frontend
