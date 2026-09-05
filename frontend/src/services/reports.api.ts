@@ -2,6 +2,10 @@ import apiClient from "@/lib/api-client";
 import type { Report, PaginatedResponse, ReportVersion } from "@/types";
 
 export const reportsApi = {
+  async getMySummary(): Promise<Record<string, number>> {
+    const response = await apiClient.get("/reports/my/summary");
+    return response.data.data;
+  },
   async create(data: any): Promise<Report> {
     const response = await apiClient.post("/reports", data);
     return response.data.data;

@@ -33,8 +33,6 @@ pnpm-debug.log*
 # Testing
 coverage/
 
-# Local Prisma migrations
-backend/prisma/migrations/
-
 # Misc
 *.tsbuildinfo
+tmp/

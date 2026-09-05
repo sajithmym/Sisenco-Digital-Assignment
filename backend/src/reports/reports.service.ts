@@ -3,24 +3,32 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
-} from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { PrismaService } from '../database/prisma.service';
-import { CreateReportDto, UpdateReportDto, ReportFilterDto } from './dto';
-import { PaginatedResponse } from '../common/dto';
-import { ReportStatus, UserRole } from '../common/enums';
-import { REPORT_SETTINGS } from '../settings';
+} from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../database/prisma.service";
+import { CreateReportDto, UpdateReportDto, ReportFilterDto } from "./dto";
+import { PaginatedResponse } from "../common/dto";
+import { ReportStatus, UserRole } from "../common/enums";
+import { lockReport } from "./report-lock";
+import { validateReportWeek, weekOf, DAY_MS } from "./report-date";
+import { REPORT_SETTINGS } from "../settings";
 
 @Injectable()
 export class ReportsService {
   constructor(private prisma: PrismaService) {}
 
   async create(userId: string, dto: CreateReportDto) {
-    if (new Date(dto.weekEnd) < new Date(dto.weekStart)) {
-      throw new BadRequestException(REPORT_SETTINGS.messages.invalidWeekRange);
-    }
-    this.ensureSingleKeyItem(dto.blockers, 'isKeyIssue', REPORT_SETTINGS.messages.onlyOneKeyIssue);
-    this.ensureSingleKeyItem(dto.achievements, 'isKeyAchievement', REPORT_SETTINGS.messages.onlyOneKeyAchievement);
+    validateReportWeek(new Date(dto.weekStart), new Date(dto.weekEnd));
+    this.ensureSingleKeyItem(
+      dto.blockers,
+      "isKeyIssue",
+      REPORT_SETTINGS.messages.onlyOneKeyIssue,
+    );
+    this.ensureSingleKeyItem(
+      dto.achievements,
+      "isKeyAchievement",
+      REPORT_SETTINGS.messages.onlyOneKeyAchievement,
+    );
     await this.ensureWeeklyReportIsUnique(userId, new Date(dto.weekStart));
     // Validate the referenced project up-front so the UI gets a clear error
     // instead of a generic foreign-key failure from the database.
@@ -51,10 +59,12 @@ export class ReportsService {
           ? {
               create: dto.tasks.map((t) => ({
                 taskName: t.taskName,
-                priority: (t.priority ?? REPORT_SETTINGS.defaultTaskPriority) as Prisma.ReportTaskCreateWithoutReportInput['priority'],
+                priority: (t.priority ??
+                  REPORT_SETTINGS.defaultTaskPriority) as Prisma.ReportTaskCreateWithoutReportInput["priority"],
                 plannedPercentage: t.plannedPercentage || 0,
                 actualPercentage: t.actualPercentage || 0,
-                status: (t.status ?? REPORT_SETTINGS.defaultTaskStatus) as Prisma.ReportTaskCreateWithoutReportInput['status'],
+                status: (t.status ??
+                  REPORT_SETTINGS.defaultTaskStatus) as Prisma.ReportTaskCreateWithoutReportInput["status"],
                 plannedMinutes: t.plannedMinutes || 0,
                 actualMinutes: t.actualMinutes || 0,
                 deliverable: t.deliverable,
@@ -89,7 +99,7 @@ export class ReportsService {
         workHours: dto.workHours
           ? {
               create: dto.workHours.map((w) => ({
-                type: w.type as Prisma.WorkHourCreateWithoutReportInput['type'],
+                type: w.type as Prisma.WorkHourCreateWithoutReportInput["type"],
                 minutes: w.minutes,
               })),
             }
@@ -97,7 +107,7 @@ export class ReportsService {
       },
       include: {
         tasks: true,
-        nextWeekTasks: { orderBy: { sortOrder: 'asc' } },
+        nextWeekTasks: { orderBy: { sortOrder: "asc" } },
         blockers: true,
         achievements: true,
         workHours: true,
@@ -121,12 +131,23 @@ export class ReportsService {
           project: { select: { id: true, name: true } },
           tasks: { select: { id: true, taskName: true, status: true } },
         },
-        orderBy: { weekStart: 'desc' },
+        orderBy: { weekStart: "desc" },
       }),
       this.prisma.report.count({ where }),
     ]);
 
     return new PaginatedResponse(reports, total, page, limit);
+  }
+
+  async getMySummary(userId: string) {
+    const groups = await this.prisma.report.groupBy({
+      by: ["status"],
+      where: { userId },
+      _count: true,
+    });
+    return Object.fromEntries(
+      groups.map((group) => [group.status, group._count]),
+    );
   }
 
   async findById(id: string, userId: string, userRole: UserRole) {
@@ -136,23 +157,29 @@ export class ReportsService {
         user: { select: { id: true, name: true, email: true } },
         project: true,
         tasks: true,
-        nextWeekTasks: { orderBy: { sortOrder: 'asc' } },
+        nextWeekTasks: { orderBy: { sortOrder: "asc" } },
         blockers: true,
         achievements: true,
         workHours: true,
-        versions: { orderBy: { versionNumber: 'desc' } },
+        versions: { orderBy: { versionNumber: "desc" } },
         reviews: {
           include: {
             reviewer: { select: { id: true, name: true } },
             reportVersion: true,
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
         },
       },
     });
 
     if (!report) {
       throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
+    }
+
+    if (report.status === ReportStatus.DRAFT && report.userId !== userId) {
+      throw new ForbiddenException(
+        "Draft contents are private to their author.",
+      );
     }
 
     // Ownership check for team members
@@ -164,76 +191,168 @@ export class ReportsService {
   }
 
   async update(id: string, userId: string, dto: UpdateReportDto) {
-    const report = await this.prisma.report.findUnique({ where: { id } });
+    return this.prisma.$transaction(async (tx) => {
+      await lockReport(tx, id);
+      const report = await tx.report.findUnique({ where: { id } });
 
-    if (!report) {
-      throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
-    }
+      if (!report) {
+        throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
+      }
 
-    if (report.userId !== userId) {
-      throw new ForbiddenException(REPORT_SETTINGS.messages.reportOwnershipDenied);
-    }
+      if (report.userId !== userId) {
+        throw new ForbiddenException(
+          REPORT_SETTINGS.messages.reportOwnershipDenied,
+        );
+      }
 
-    if (report.status !== ReportStatus.DRAFT && report.status !== ReportStatus.NEEDS_CORRECTION) {
-      throw new ForbiddenException(REPORT_SETTINGS.messages.reportReadOnly);
-    }
+      if (
+        report.status !== ReportStatus.DRAFT &&
+        report.status !== ReportStatus.NEEDS_CORRECTION
+      ) {
+        throw new ForbiddenException(REPORT_SETTINGS.messages.reportReadOnly);
+      }
 
-    const effectiveWeekStart = dto.weekStart ? new Date(dto.weekStart) : report.weekStart;
-    const effectiveWeekEnd = dto.weekEnd ? new Date(dto.weekEnd) : report.weekEnd;
-    if (effectiveWeekEnd < effectiveWeekStart) {
-      throw new BadRequestException(REPORT_SETTINGS.messages.invalidWeekRange);
-    }
-    if (dto.weekStart) {
-      await this.ensureWeeklyReportIsUnique(userId, effectiveWeekStart, id);
-    }
-    if (dto.projectId) {
-      const project = await this.prisma.project.findUnique({ where: { id: dto.projectId }, select: { isActive: true } });
-      if (!project) throw new NotFoundException(REPORT_SETTINGS.messages.projectNotFound);
-      if (!project.isActive) throw new BadRequestException(REPORT_SETTINGS.messages.inactiveProject);
-    }
-    this.ensureSingleKeyItem(dto.blockers, 'isKeyIssue', REPORT_SETTINGS.messages.onlyOneKeyIssue);
-    this.ensureSingleKeyItem(dto.achievements, 'isKeyAchievement', REPORT_SETTINGS.messages.onlyOneKeyAchievement);
+      const effectiveWeekStart = dto.weekStart
+        ? new Date(dto.weekStart)
+        : report.weekStart;
+      const effectiveWeekEnd = dto.weekEnd
+        ? new Date(dto.weekEnd)
+        : report.weekEnd;
+      validateReportWeek(effectiveWeekStart, effectiveWeekEnd);
+      if (dto.weekStart) {
+        await this.ensureWeeklyReportIsUnique(
+          userId,
+          effectiveWeekStart,
+          id,
+          tx,
+        );
+      }
+      if (dto.projectId && dto.projectId !== report.projectId) {
+        const project = await tx.project.findUnique({
+          where: { id: dto.projectId },
+          select: { isActive: true },
+        });
+        if (!project)
+          throw new NotFoundException(REPORT_SETTINGS.messages.projectNotFound);
+        if (!project.isActive)
+          throw new BadRequestException(
+            REPORT_SETTINGS.messages.inactiveProject,
+          );
+      }
+      this.ensureSingleKeyItem(
+        dto.blockers,
+        "isKeyIssue",
+        REPORT_SETTINGS.messages.onlyOneKeyIssue,
+      );
+      this.ensureSingleKeyItem(
+        dto.achievements,
+        "isKeyAchievement",
+        REPORT_SETTINGS.messages.onlyOneKeyAchievement,
+      );
 
-    return this.prisma.report.update({
-      where: { id },
-      data: {
-        projectId: dto.projectId === undefined ? undefined : dto.projectId || null,
-        weekStart: dto.weekStart ? new Date(dto.weekStart) : undefined,
-        weekEnd: dto.weekEnd ? new Date(dto.weekEnd) : undefined,
-        notes: dto.notes,
-        tasks: dto.tasks === undefined ? undefined : { deleteMany: {}, create: dto.tasks.map((task) => ({ taskName: task.taskName, priority: (task.priority ?? REPORT_SETTINGS.defaultTaskPriority) as Prisma.ReportTaskCreateWithoutReportInput['priority'], plannedPercentage: task.plannedPercentage || 0, actualPercentage: task.actualPercentage || 0, status: (task.status ?? REPORT_SETTINGS.defaultTaskStatus) as Prisma.ReportTaskCreateWithoutReportInput['status'], plannedMinutes: task.plannedMinutes || 0, actualMinutes: task.actualMinutes || 0, deliverable: task.deliverable })) },
-        nextWeekTasks: dto.nextWeekTasks === undefined ? undefined : { deleteMany: {}, create: dto.nextWeekTasks.map((task, index) => ({ description: task.description, sortOrder: task.sortOrder ?? index })) },
-        blockers: dto.blockers === undefined ? undefined : { deleteMany: {}, create: dto.blockers.map((blocker) => ({ description: blocker.description, isKeyIssue: blocker.isKeyIssue || false, isResolved: blocker.isResolved || false })) },
-        achievements: dto.achievements === undefined ? undefined : { deleteMany: {}, create: dto.achievements.map((achievement) => ({ description: achievement.description, isKeyAchievement: achievement.isKeyAchievement || false })) },
-        workHours: dto.workHours === undefined ? undefined : { deleteMany: {}, create: dto.workHours.map((workHour) => ({ type: workHour.type as Prisma.WorkHourCreateWithoutReportInput['type'], minutes: workHour.minutes })) },
-      },
-      include: {
-        project: true,
-        tasks: true,
-        nextWeekTasks: { orderBy: { sortOrder: 'asc' } },
-        blockers: true,
-        achievements: true,
-        workHours: true,
-      },
+      return tx.report.update({
+        where: { id },
+        data: {
+          projectId:
+            dto.projectId === undefined ? undefined : dto.projectId || null,
+          weekStart: dto.weekStart ? new Date(dto.weekStart) : undefined,
+          weekEnd: dto.weekEnd ? new Date(dto.weekEnd) : undefined,
+          notes: dto.notes,
+          tasks:
+            dto.tasks === undefined
+              ? undefined
+              : {
+                  deleteMany: {},
+                  create: dto.tasks.map((task) => ({
+                    taskName: task.taskName,
+                    priority: (task.priority ??
+                      REPORT_SETTINGS.defaultTaskPriority) as Prisma.ReportTaskCreateWithoutReportInput["priority"],
+                    plannedPercentage: task.plannedPercentage || 0,
+                    actualPercentage: task.actualPercentage || 0,
+                    status: (task.status ??
+                      REPORT_SETTINGS.defaultTaskStatus) as Prisma.ReportTaskCreateWithoutReportInput["status"],
+                    plannedMinutes: task.plannedMinutes || 0,
+                    actualMinutes: task.actualMinutes || 0,
+                    deliverable: task.deliverable,
+                  })),
+                },
+          nextWeekTasks:
+            dto.nextWeekTasks === undefined
+              ? undefined
+              : {
+                  deleteMany: {},
+                  create: dto.nextWeekTasks.map((task, index) => ({
+                    description: task.description,
+                    sortOrder: task.sortOrder ?? index,
+                  })),
+                },
+          blockers:
+            dto.blockers === undefined
+              ? undefined
+              : {
+                  deleteMany: {},
+                  create: dto.blockers.map((blocker) => ({
+                    description: blocker.description,
+                    isKeyIssue: blocker.isKeyIssue || false,
+                    isResolved: blocker.isResolved || false,
+                  })),
+                },
+          achievements:
+            dto.achievements === undefined
+              ? undefined
+              : {
+                  deleteMany: {},
+                  create: dto.achievements.map((achievement) => ({
+                    description: achievement.description,
+                    isKeyAchievement: achievement.isKeyAchievement || false,
+                  })),
+                },
+          workHours:
+            dto.workHours === undefined
+              ? undefined
+              : {
+                  deleteMany: {},
+                  create: dto.workHours.map((workHour) => ({
+                    type: workHour.type as Prisma.WorkHourCreateWithoutReportInput["type"],
+                    minutes: workHour.minutes,
+                  })),
+                },
+        },
+        include: {
+          project: true,
+          tasks: true,
+          nextWeekTasks: { orderBy: { sortOrder: "asc" } },
+          blockers: true,
+          achievements: true,
+          workHours: true,
+        },
+      });
     });
   }
 
   async findByFilters(filters: ReportFilterDto) {
-    const { page, limit, userId, projectId, status, weekStart, weekEnd } = filters;
+    const { page, limit, userId, projectId, status, weekStart, weekEnd } =
+      filters;
     const skip = (page - 1) * limit;
 
-    const where: Prisma.ReportWhereInput = {};
+    const where: Prisma.ReportWhereInput = {
+      status: { not: ReportStatus.DRAFT },
+    };
+    if (status === ReportStatus.DRAFT)
+      return new PaginatedResponse([], 0, page, limit);
 
     if (userId) where.userId = userId;
     if (projectId) where.projectId = projectId;
-    if (status) where.status = status as Prisma.ReportWhereInput['status'];
-    const filterWeekStart = weekStart ? new Date(weekStart) : undefined;
-    const filterWeekEnd = weekEnd ? this.endOfDay(weekEnd) : undefined;
+    if (status) where.status = status as Prisma.ReportWhereInput["status"];
+    const filterWeekStart = weekStart ? weekOf(weekStart) : undefined;
+    const filterWeekEnd = weekEnd
+      ? new Date(weekOf(weekEnd).getTime() + 7 * DAY_MS - 1)
+      : undefined;
     if (filterWeekStart && filterWeekEnd && filterWeekEnd < filterWeekStart) {
       throw new BadRequestException(REPORT_SETTINGS.messages.invalidWeekRange);
     }
-    if (filterWeekStart) where.weekStart = { gte: filterWeekStart };
-    if (filterWeekEnd) where.weekEnd = { lte: filterWeekEnd };
+    if (filterWeekStart || filterWeekEnd)
+      where.weekStart = { gte: filterWeekStart, lte: filterWeekEnd };
 
     const [reports, total] = await Promise.all([
       this.prisma.report.findMany({
@@ -245,7 +364,7 @@ export class ReportsService {
           project: { select: { id: true, name: true } },
           tasks: { select: { id: true, taskName: true, status: true } },
         },
-        orderBy: { weekStart: 'desc' },
+        orderBy: { weekStart: "desc" },
       }),
       this.prisma.report.count({ where }),
     ]);
@@ -267,8 +386,9 @@ export class ReportsService {
     userId: string,
     weekStart: Date,
     excludedReportId?: string,
+    client: Prisma.TransactionClient = this.prisma,
   ) {
-    const existingReport = await this.prisma.report.findFirst({
+    const existingReport = await client.report.findFirst({
       where: {
         userId,
         weekStart,
@@ -278,7 +398,9 @@ export class ReportsService {
     });
 
     if (existingReport) {
-      throw new BadRequestException(REPORT_SETTINGS.messages.reportAlreadyExists);
+      throw new BadRequestException(
+        REPORT_SETTINGS.messages.reportAlreadyExists,
+      );
     }
   }
 

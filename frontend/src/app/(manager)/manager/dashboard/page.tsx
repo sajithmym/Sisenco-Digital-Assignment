@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { reportWeek } from "@/lib/report-week";
+import { useResource } from "@/lib/use-resource";
+import { DatePicker } from "@/components/ui/date-picker";
+import { SubmissionRoster } from "@/features/reports/components/submission-roster";
 import { managerApi } from "@/services/manager.api";
 import { PageHeader } from "@/components/shared/page-header";
 import { MetricCard } from "@/components/shared/metric-card";
@@ -41,43 +45,41 @@ import { CHART_SETTINGS } from "@/lib/settings";
 const COLORS = CHART_SETTINGS.palette;
 
 export default function ManagerDashboardPage() {
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [statusDist, setStatusDist] = useState<StatusDistribution[]>([]);
-  const [taskTrends, setTaskTrends] = useState<TaskTrend[]>([]);
-  const [projectWorkload, setProjectWorkload] = useState<ProjectWorkload[]>([]);
-  const [timeDist, setTimeDist] = useState<TimeDistribution[]>([]);
-  const [activity, setActivity] = useState<ActivityItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchDashboard = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [s, st, tt, pw, td, act] = await Promise.all([
-        managerApi.getSummary(),
-        managerApi.getStatusDistribution(),
-        managerApi.getTaskTrends(8),
-        managerApi.getProjectWorkload(),
-        managerApi.getTimeDistribution(),
-        managerApi.getRecentActivity(10),
-      ]);
-      setSummary(s);
-      setStatusDist(st);
-      setTaskTrends(tt);
-      setProjectWorkload(pw);
-      setTimeDist(td);
-      setActivity(act);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to load dashboard");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
+  const [week, setWeek] = useState(() => reportWeek());
+  const loader = useCallback(async () => {
+    const [
+      summary,
+      statusDist,
+      taskTrends,
+      projectWorkload,
+      timeDist,
+      activity,
+    ] = await Promise.all([
+      managerApi.getSummary(week.weekStart, week.weekEnd),
+      managerApi.getStatusDistribution(week.weekStart, week.weekEnd),
+      managerApi.getTaskTrends(8, week.weekEnd),
+      managerApi.getProjectWorkload(week.weekStart, week.weekEnd),
+      managerApi.getTimeDistribution(week.weekStart, week.weekEnd),
+      managerApi.getRecentActivity(10, week.weekStart, week.weekEnd),
+    ]);
+    return {
+      summary,
+      statusDist,
+      taskTrends,
+      projectWorkload,
+      timeDist,
+      activity,
+    };
+  }, [week]);
+  const { data, loading, error, reload: fetchDashboard } = useResource(loader);
+  const {
+    summary,
+    statusDist = [],
+    taskTrends = [],
+    projectWorkload = [],
+    timeDist = [],
+    activity = [],
+  } = data || {};
 
   if (loading) return <LoadingState message="Loading dashboard..." />;
   if (error) return <ErrorState message={error} onRetry={fetchDashboard} />;
@@ -89,6 +91,18 @@ export default function ManagerDashboardPage() {
         description="Team overview and analytics"
       />
 
+      <div className="max-w-sm space-y-2">
+        <p id="dashboard-week-label" className="text-sm font-medium">
+          Reporting week (Monday–Sunday, UTC)
+        </p>
+        <DatePicker
+          value={week.weekStart}
+          onChange={(value) => value && setWeek(reportWeek(value))}
+        />
+        <p className="text-sm text-muted-foreground">
+          {formatDate(week.weekStart)} – {formatDate(week.weekEnd)}
+        </p>
+      </div>
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
         <MetricCard
@@ -96,6 +110,13 @@ export default function ManagerDashboardPage() {
           value={summary?.submittedCount || 0}
           icon={<FileText className="h-4 w-4" />}
         />
+        <MetricCard
+          title="Compliance"
+          value={`${summary?.complianceRate || 0}%`}
+        />
+        <MetricCard title="Pending" value={summary?.pendingCount || 0} />
+        <MetricCard title="Late" value={summary?.lateCount || 0} />
+        <MetricCard title="Not started" value={summary?.notStartedCount || 0} />
         <MetricCard
           title="Approved"
           value={summary?.approvedCount || 0}
@@ -118,6 +139,11 @@ export default function ManagerDashboardPage() {
         />
       </div>
 
+      <SubmissionRoster
+        key={week.weekStart}
+        weekStart={week.weekStart}
+        weekEnd={week.weekEnd}
+      />
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Status Distribution */}
@@ -138,9 +164,13 @@ export default function ManagerDashboardPage() {
                     outerRadius={100}
                     fill={CHART_SETTINGS.projectReports}
                     dataKey="count"
+                    nameKey="status"
                   >
                     {statusDist.map((entry, index) => (
-                      <Cell key={entry.status} fill={COLORS[index % COLORS.length]} />
+                      <Cell
+                        key={entry.status}
+                        fill={COLORS[index % COLORS.length]}
+                      />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -167,8 +197,16 @@ export default function ManagerDashboardPage() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="total" fill={CHART_SETTINGS.taskTotal} name="Total" />
-                  <Bar dataKey="completed" fill={CHART_SETTINGS.taskCompleted} name="Completed" />
+                  <Bar
+                    dataKey="total"
+                    fill={CHART_SETTINGS.taskTotal}
+                    name="Total"
+                  />
+                  <Bar
+                    dataKey="completed"
+                    fill={CHART_SETTINGS.taskCompleted}
+                    name="Completed"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -188,11 +226,22 @@ export default function ManagerDashboardPage() {
                 <BarChart data={projectWorkload}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="projectName" />
-                  <YAxis />
+                  <YAxis yAxisId="reports" allowDecimals={false} />
+                  <YAxis yAxisId="minutes" orientation="right" />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="reportCount" fill={CHART_SETTINGS.projectReports} name="Reports" />
-                  <Bar dataKey="totalMinutes" fill={CHART_SETTINGS.projectMinutes} name="Minutes" />
+                  <Bar
+                    yAxisId="reports"
+                    dataKey="reportCount"
+                    fill={CHART_SETTINGS.projectReports}
+                    name="Reports"
+                  />
+                  <Bar
+                    yAxisId="minutes"
+                    dataKey="totalMinutes"
+                    fill={CHART_SETTINGS.projectMinutes}
+                    name="Minutes"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -221,9 +270,13 @@ export default function ManagerDashboardPage() {
                     outerRadius={100}
                     fill={CHART_SETTINGS.projectReports}
                     dataKey="totalMinutes"
+                    nameKey="type"
                   >
                     {timeDist.map((entry, index) => (
-                      <Cell key={entry.type} fill={COLORS[index % COLORS.length]} />
+                      <Cell
+                        key={entry.type}
+                        fill={COLORS[index % COLORS.length]}
+                      />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -246,12 +299,19 @@ export default function ManagerDashboardPage() {
           {activity.length > 0 ? (
             <div className="space-y-3">
               {activity.map((item) => (
-                <div key={item.id} className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3 p-3 border rounded-md">
+                <div
+                  key={item.id}
+                  className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3 p-3 border rounded-md"
+                >
                   <div className="flex-1">
                     <p className="text-sm">
                       <span className="font-medium">{item.reviewer.name}</span>{" "}
-                      {item.action === "APPROVED" ? "approved" : "requested changes on"}{" "}
-                      <span className="font-medium">{item.report.user.name}&apos;s</span>{" "}
+                      {item.action === "APPROVED"
+                        ? "approved"
+                        : "requested changes on"}{" "}
+                      <span className="font-medium">
+                        {item.report.user.name}&apos;s
+                      </span>{" "}
                       report
                       {item.report.project && (
                         <span> for {item.report.project.name}</span>
@@ -270,7 +330,9 @@ export default function ManagerDashboardPage() {
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground text-center py-8">No recent activity</p>
+            <p className="text-muted-foreground text-center py-8">
+              No recent activity
+            </p>
           )}
         </CardContent>
       </Card>

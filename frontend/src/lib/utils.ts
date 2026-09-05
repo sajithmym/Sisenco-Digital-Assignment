@@ -7,6 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatDate(date: string | Date) {
   return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -15,11 +16,13 @@ export function formatDate(date: string | Date) {
 
 export function formatDateTime(date: string | Date) {
   return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
     year: "numeric",
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZoneName: "short",
   }).format(new Date(date));
 }
 

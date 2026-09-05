@@ -1,7 +1,18 @@
-import { IsEmail, IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
-import { UserRole } from '../../common/enums';
+import { Transform } from "class-transformer";
+import {
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from "class-validator";
+import { UserRole } from "../../common/enums";
 
 export class CreateUserDto {
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === "string" ? value.trim() : value,
+  )
   @IsString()
   @MinLength(2)
   @MaxLength(100)

@@ -1,185 +1,230 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { Prisma, TaskStatus } from '@prisma/client';
-import { PrismaService } from '../database/prisma.service';
-import { ReportStatus, UserRole } from '../common/enums';
-import { DASHBOARD_SETTINGS } from '../settings';
+import { Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../database/prisma.service";
+import { DAY_MS, selectedWeeks, weekOf } from "../reports/report-date";
+import { PaginatedResponse } from "../common/dto";
+import { RosterFilterDto } from "./dto/dashboard-filter.dto";
 
 @Injectable()
 export class DashboardService {
   constructor(private prisma: PrismaService) {}
 
-  async getSummary(weekStart?: string, weekEnd?: string) {
-    const dateFilter = this.buildDateFilter(weekStart, weekEnd);
-
-    const [
-      totalReports,
-      submittedCount,
-      approvedCount,
-      needsCorrectionCount,
-      draftCount,
-      totalTeamMembers,
-      openBlockers,
-    ] = await Promise.all([
-      this.prisma.report.count({ where: dateFilter }),
-      this.prisma.report.count({ where: { ...dateFilter, status: ReportStatus.SUBMITTED } }),
-      this.prisma.report.count({ where: { ...dateFilter, status: ReportStatus.APPROVED } }),
-      this.prisma.report.count({ where: { ...dateFilter, status: ReportStatus.NEEDS_CORRECTION } }),
-      this.prisma.report.count({ where: { ...dateFilter, status: ReportStatus.DRAFT } }),
-      this.prisma.user.count({ where: { isActive: true, role: UserRole.TEAM_MEMBER } }),
-      this.prisma.blocker.count({ where: { isResolved: false } }),
-    ]);
-
-    const complianceRate = totalTeamMembers > 0
-      ? Math.round((submittedCount / totalTeamMembers) * 100)
-      : 0;
-
+  private dateFilter(start?: string, end?: string): Prisma.ReportWhereInput {
+    const range = selectedWeeks(start, end);
     return {
-      totalReports,
-      submittedCount,
-      approvedCount,
-      needsCorrectionCount,
-      draftCount,
-      totalTeamMembers,
-      openBlockers,
-      complianceRate,
+      weekStart: { gte: range.first, lt: range.endExclusive },
+      status: { not: "DRAFT" },
     };
   }
 
-  async getStatusDistribution(weekStart?: string, weekEnd?: string) {
-    const dateFilter = this.buildDateFilter(weekStart, weekEnd);
-
-    const distribution = await this.prisma.report.groupBy({
-      by: ['status'],
-      where: dateFilter,
-      _count: { status: true },
+  private async roster(start?: string, end?: string, userId?: string) {
+    const range = selectedWeeks(start, end);
+    const members = await this.prisma.user.findMany({
+      where: {
+        role: "TEAM_MEMBER",
+        isActive: true,
+        ...(userId ? { id: userId } : {}),
+      },
+      select: { id: true, name: true },
+      orderBy: [{ name: "asc" }, { id: "asc" }],
     });
-
-    return distribution.map((item) => ({
-      status: item.status,
-      count: item._count.status,
-    }));
-  }
-
-  async getTaskTrends(weeks: number = DASHBOARD_SETTINGS.defaultTaskTrendWeeks) {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - weeks * 7);
-
     const reports = await this.prisma.report.findMany({
       where: {
-        weekStart: { gte: startDate },
-        status: { not: ReportStatus.DRAFT },
+        userId: { in: members.map((member) => member.id) },
+        weekStart: { gte: range.first, lt: range.endExclusive },
       },
-      include: {
-        tasks: { select: { status: true } },
-      },
-      orderBy: { weekStart: 'asc' },
-    });
-
-    // Group by week
-    const trends = reports.reduce((acc, report) => {
-      const weekKey = new Date(report.weekStart).toISOString().split('T')[0];
-      if (!acc[weekKey]) {
-        acc[weekKey] = { week: weekKey, total: 0, completed: 0 };
-      }
-      acc[weekKey].total += report.tasks.length;
-      acc[weekKey].completed += report.tasks.filter(
-        (t) => t.status === (DASHBOARD_SETTINGS.completedTaskStatus as TaskStatus),
-      ).length;
-      return acc;
-    }, {} as Record<string, { week: string; total: number; completed: number }>);
-
-    return Object.values(trends);
-  }
-
-  async getProjectWorkload(weekStart?: string, weekEnd?: string) {
-    const dateFilter = this.buildDateFilter(weekStart, weekEnd);
-
-    const projects = await this.prisma.project.findMany({
-      where: { isActive: true },
-      include: {
-        reports: {
-          where: dateFilter,
-          include: {
-            tasks: { select: { actualMinutes: true } },
-          },
+      // Draft tracking exposes status metadata only, never report content.
+      select: {
+        id: true,
+        userId: true,
+        weekStart: true,
+        status: true,
+        submittedAt: true,
+        versions: {
+          select: { submittedAt: true },
+          orderBy: { versionNumber: "asc" },
+          take: 1,
         },
       },
     });
+    const lookup = new Map(
+      reports.map((report) => [
+        `${report.userId}:${weekOf(report.weekStart).toISOString()}`,
+        report,
+      ]),
+    );
+    return members.flatMap((member) =>
+      range.weeks.map((week) => {
+        const report = lookup.get(`${member.id}:${week.toISOString()}`);
+        const submittedAt =
+          report?.versions[0]?.submittedAt || report?.submittedAt || null;
+        const deadline = new Date(week.getTime() + 7 * DAY_MS);
+        const submitted = report !== undefined && report.status !== "DRAFT";
+        const late = submitted
+          ? Boolean(submittedAt && submittedAt >= deadline)
+          : new Date() >= deadline;
+        return {
+          userId: member.id,
+          name: member.name,
+          weekStart: week.toISOString(),
+          deadline: deadline.toISOString(),
+          status:
+            report?.status === "DRAFT"
+              ? "DRAFT"
+              : report?.status || "NOT_STARTED",
+          reportId: report?.status === "DRAFT" ? null : report?.id || null,
+          submittedAt: submittedAt?.toISOString() || null,
+          submitted,
+          late,
+        };
+      }),
+    );
+  }
 
+  async getRoster(filters: RosterFilterDto) {
+    let rows = await this.roster(
+      filters.weekStart,
+      filters.weekEnd,
+      filters.userId,
+    );
+    if (filters.status === "LATE") rows = rows.filter((row) => row.late);
+    else if (filters.status === "PENDING")
+      rows = rows.filter((row) => !row.submitted);
+    else if (filters.status)
+      rows = rows.filter((row) => row.status === filters.status);
+    return new PaginatedResponse(
+      rows.slice(
+        (filters.page - 1) * filters.limit,
+        filters.page * filters.limit,
+      ),
+      rows.length,
+      filters.page,
+      filters.limit,
+    );
+  }
+
+  async getSummary(start?: string, end?: string) {
+    const rows = await this.roster(start, end);
+    const submittedCount = rows.filter((row) => row.submitted).length;
+    const openBlockers = await this.prisma.blocker.count({
+      where: { isResolved: false, report: this.dateFilter(start, end) },
+    });
+    return {
+      totalReports: rows.filter((row) => row.status !== "NOT_STARTED").length,
+      submittedCount,
+      approvedCount: rows.filter((row) => row.status === "APPROVED").length,
+      needsCorrectionCount: rows.filter(
+        (row) => row.status === "NEEDS_CORRECTION",
+      ).length,
+      draftCount: rows.filter((row) => row.status === "DRAFT").length,
+      notStartedCount: rows.filter((row) => row.status === "NOT_STARTED")
+        .length,
+      pendingCount: rows.filter((row) => !row.submitted).length,
+      lateCount: rows.filter((row) => row.late).length,
+      expectedCount: rows.length,
+      totalTeamMembers: new Set(rows.map((row) => row.userId)).size,
+      openBlockers,
+      complianceRate: rows.length
+        ? Math.round((submittedCount / rows.length) * 100)
+        : 0,
+    };
+  }
+
+  async getStatusDistribution(start?: string, end?: string) {
+    const rows = await this.roster(start, end);
+    const counts = new Map<string, number>();
+    rows.forEach((row) =>
+      counts.set(row.status, (counts.get(row.status) || 0) + 1),
+    );
+    return Array.from(counts, ([status, count]) => ({ status, count }));
+  }
+
+  async getTaskTrends(weeks = 8, weekEnd?: string) {
+    const last = weekOf(weekEnd || new Date());
+    const start = new Date(last.getTime() - (weeks - 1) * 7 * DAY_MS);
+    const range = selectedWeeks(start.toISOString(), last.toISOString());
+    const reports = await this.prisma.report.findMany({
+      where: this.dateFilter(start.toISOString(), last.toISOString()),
+      select: { weekStart: true, tasks: { select: { status: true } } },
+    });
+    return range.weeks.map((week) => {
+      const tasks = reports
+        .filter(
+          (report) => weekOf(report.weekStart).getTime() === week.getTime(),
+        )
+        .flatMap((report) => report.tasks);
+      return {
+        week: week.toISOString().slice(0, 10),
+        total: tasks.length,
+        completed: tasks.filter((task) => task.status === "DONE").length,
+      };
+    });
+  }
+
+  async getProjectWorkload(start?: string, end?: string) {
+    const projects = await this.prisma.project.findMany({
+      where: { reports: { some: this.dateFilter(start, end) } },
+      select: {
+        id: true,
+        name: true,
+        isActive: true,
+        reports: {
+          where: this.dateFilter(start, end),
+          select: { tasks: { select: { actualMinutes: true } } },
+        },
+      },
+      orderBy: { name: "asc" },
+    });
     return projects.map((project) => ({
       projectId: project.id,
-      projectName: project.name,
+      projectName: project.name + (project.isActive ? "" : " (archived)"),
       reportCount: project.reports.length,
       totalMinutes: project.reports.reduce(
-        (sum, r) => sum + r.tasks.reduce((tSum, t) => tSum + t.actualMinutes, 0),
+        (sum, report) =>
+          sum +
+          report.tasks.reduce((total, task) => total + task.actualMinutes, 0),
         0,
       ),
     }));
   }
 
-  async getTimeDistribution(weekStart?: string, weekEnd?: string) {
-    const dateFilter = this.buildDateFilter(weekStart, weekEnd);
-
-    const workHours = await this.prisma.workHour.groupBy({
-      by: ['type'],
-      where: {
-        report: dateFilter,
-      },
+  async getTimeDistribution(start?: string, end?: string) {
+    const hours = await this.prisma.workHour.groupBy({
+      by: ["type"],
+      where: { report: this.dateFilter(start, end) },
       _sum: { minutes: true },
     });
-
-    return workHours.map((item) => ({
-      type: item.type,
-      totalMinutes: item._sum.minutes || 0,
+    return hours.map((hour) => ({
+      type: hour.type,
+      totalMinutes: hour._sum.minutes || 0,
     }));
   }
 
-  async getRecentActivity(limit: number = DASHBOARD_SETTINGS.defaultActivityLimit) {
+  async getRecentActivity(limit = 20, start?: string, end?: string) {
     const reviews = await this.prisma.review.findMany({
       take: limit,
+      where: { report: this.dateFilter(start, end) },
       include: {
         reviewer: { select: { id: true, name: true } },
         report: {
-          include: {
+          select: {
+            id: true,
+            weekStart: true,
+            weekEnd: true,
             user: { select: { id: true, name: true } },
             project: { select: { id: true, name: true } },
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
-
     return reviews.map((review) => ({
       id: review.id,
       action: review.action,
       comment: review.comment,
       createdAt: review.createdAt,
       reviewer: review.reviewer,
-      report: {
-        id: review.report.id,
-        weekStart: review.report.weekStart,
-        weekEnd: review.report.weekEnd,
-        user: review.report.user,
-        project: review.report.project,
-      },
+      report: review.report,
     }));
-  }
-
-  private buildDateFilter(weekStart?: string, weekEnd?: string) {
-    const filter: Prisma.ReportWhereInput = {};
-    const start = weekStart ? new Date(weekStart) : undefined;
-    const end = weekEnd ? this.endOfDay(weekEnd) : undefined;
-    if (start && end && end < start) {
-      throw new BadRequestException(DASHBOARD_SETTINGS.messages.invalidDateRange);
-    }
-    if (start) filter.weekStart = { gte: start };
-    if (end) filter.weekEnd = { lte: end };
-    return filter;
-  }
-
-  private endOfDay(value: string) {
-    const date = new Date(value);
-    date.setUTCHours(23, 59, 59, 999);
-    return date;
   }
 }

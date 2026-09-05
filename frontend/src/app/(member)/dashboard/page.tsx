@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useResource } from "@/lib/use-resource";
 import { reportsApi } from "@/services/reports.api";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -15,26 +16,23 @@ import { PAGINATION_SETTINGS } from "@/lib/settings";
 import type { Report, PaginatedResponse } from "@/types";
 
 export default function MemberDashboardPage() {
-  const [data, setData] = useState<PaginatedResponse<Report> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchReports = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await reportsApi.getMyReports({ page: PAGINATION_SETTINGS.defaultPage, limit: PAGINATION_SETTINGS.dashboardLimit });
-      setData(result);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to load reports");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchReports();
+  const loader = useCallback(async () => {
+    const [data, summary] = await Promise.all([
+      reportsApi.getMyReports({
+        page: 1,
+        limit: PAGINATION_SETTINGS.dashboardLimit,
+      }),
+      reportsApi.getMySummary(),
+    ]);
+    return { data, summary };
   }, []);
+  const {
+    data: result,
+    loading,
+    error,
+    reload: fetchReports,
+  } = useResource(loader);
+  const { data, summary = {} } = result || {};
 
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={fetchReports} />;
@@ -69,7 +67,7 @@ export default function MemberDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {recentReports.filter((r) => r.status === "APPROVED").length}
+              {summary.APPROVED || 0}
             </div>
           </CardContent>
         </Card>
@@ -79,17 +77,19 @@ export default function MemberDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {recentReports.filter((r) => r.status === "SUBMITTED").length}
+              {summary.SUBMITTED || 0}
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Needs Correction</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Needs Correction
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
-              {recentReports.filter((r) => r.status === "NEEDS_CORRECTION").length}
+              {summary.NEEDS_CORRECTION || 0}
             </div>
           </CardContent>
         </Card>
@@ -116,10 +116,12 @@ export default function MemberDashboardPage() {
                   <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div>
                       <p className="font-medium">
-                        Week of {formatDate(report.weekStart)} — {formatDate(report.weekEnd)}
+                        Week of {formatDate(report.weekStart)} —{" "}
+                        {formatDate(report.weekEnd)}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {report.project?.name || "No project"} • Version {report.latestVersionNumber}
+                        {report.project?.name || "No project"} • Version{" "}
+                        {report.latestVersionNumber}
                       </p>
                     </div>
                     <StatusBadge status={report.status} />

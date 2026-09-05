@@ -17,7 +17,7 @@ A production-style internal web application where team members create and submit
 
 | Layer      | Technology                                         |
 |------------|----------------------------------------------------|
-| Frontend   | Next.js 14, TypeScript, Tailwind CSS, shadcn/ui   |
+| Frontend   | Next.js 16.3.4, TypeScript, Tailwind CSS, shadcn/ui   |
 | Forms      | React Hook Form + Zod                              |
 | Charts     | Recharts                                           |
 | Backend    | NestJS, TypeScript                                 |
@@ -98,7 +98,7 @@ Reads from environment variables with fallback defaults:
 
 ### Prerequisites
 
-- Node.js >= 18
+- Node.js >= 24
 - PostgreSQL 14+ (or Docker)
 - npm
 
@@ -181,6 +181,7 @@ See [docs/21-database-setup-guide.md](docs/21-database-setup-guide.md) for detai
 
 | Role | Name | Email | Password |
 |------|------|-------|----------|
+| Admin | Demo Administrator | admin@example.com | password123 |
 | Manager | Sarah Fernando | sarah@example.com | password123 |
 | Team Member | Kasun Silva | kasun@example.com | password123 |
 | Team Member | Ayesha Perera | ayesha@example.com | password123 |
@@ -274,3 +275,14 @@ See the `docs/` folder for 21 detailed guides:
 ## License
 
 MIT
+
+
+## Verified assignment fixes
+
+See [docs/assignment-fixes.md](docs/assignment-fixes.md) for the implementation changes, reporting rules, tests, and remaining external submission items.
+
+Reporting weeks run Monday-Sunday in UTC. A submission is due before the following Monday at 00:00 UTC. Compliance is submitted member-weeks divided by expected member-weeks for the current active team roster; approval and correction retain submission credit. Pending means no submission; late includes overdue pending reports and reports first submitted after their deadline. Past membership is not inferred because the data model does not store membership history.
+
+From `backend/`, run `npm test -- --runInBand` for unit tests and `npm run test:e2e` for real HTTP/PostgreSQL checks. E2E tests create and migrate an isolated temporary schema in the local configured database, verify the workflow and seed, and remove only that test schema afterward.
+
+Use `npm run db:init` for local setup and `npx prisma migrate deploy` for deployment. Migration SQL and `migration_lock.toml` are tracked by Git; `.env` stays ignored. Node.js 24 or later is required by the backend and is the tested runtime.

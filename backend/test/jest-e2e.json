@@ -1,0 +1,14 @@
+{
+  "rootDir": "..",
+  "testRegex": "test/.*\\.e2e-spec\\.js$",
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "transform": {
+    "^.+\\.[tj]s$": [
+      "ts-jest",
+      { "tsconfig": { "allowJs": true, "esModuleInterop": true } }
+    ]
+  },
+  "transformIgnorePatterns": ["node_modules/(?!@nestjs/passport/)"],
+  "testEnvironment": "node",
+  "testTimeout": 30000
+}

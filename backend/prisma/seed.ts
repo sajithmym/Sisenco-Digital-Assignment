@@ -1,190 +1,168 @@
-import { PrismaClient, UserRole, ReportStatus, ReviewAction } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
-import { SEED_SETTINGS, AUTH_SETTINGS } from '../src/settings';
+import { PrismaClient, UserRole, Prisma, Project, User } from "@prisma/client";
+import * as bcrypt from "bcrypt";
+import { SEED_SETTINGS, AUTH_SETTINGS } from "../src/settings";
+import { ReportsService } from "../src/reports/reports.service";
+import { ReportWorkflowService } from "../src/reports/report-workflow.service";
+import { PrismaService } from "../src/database/prisma.service";
+import { DAY_MS, weekOf } from "../src/reports/report-date";
 
 const prisma = new PrismaClient();
-
-async function hashPassword(password: string) {
-  return bcrypt.hash(password, AUTH_SETTINGS.passwordHashRounds);
-}
-
 async function main() {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('Seeding is disabled in production.');
-  }
-
-  console.log('🌱 Seeding database...');
-
-  const password = await hashPassword(SEED_SETTINGS.defaultPassword);
-
-  // ─── Users ─────────────────────────────────────────────
-  const manager = await prisma.user.upsert({
-    where: { email: SEED_SETTINGS.manager.email },
-    update: {},
-    create: {
-      name: SEED_SETTINGS.manager.name,
-      email: SEED_SETTINGS.manager.email,
-      passwordHash: password,
-      role: UserRole.MANAGER,
+  if (process.env.NODE_ENV === "production")
+    throw new Error("Seeding is disabled in production.");
+  const passwordHash = await bcrypt.hash(
+    SEED_SETTINGS.defaultPassword,
+    AUTH_SETTINGS.passwordHashRounds,
+  );
+  const accounts = [
+    {
+      name: "Demo Administrator",
+      email: "admin@example.com",
+      role: UserRole.ADMIN,
     },
-  });
-
-  const members = await Promise.all(
-    SEED_SETTINGS.members.map((m) =>
-      prisma.user.upsert({
-        where: { email: m.email },
+    { ...SEED_SETTINGS.manager, role: UserRole.MANAGER },
+    ...SEED_SETTINGS.members.map((member) => ({
+      ...member,
+      role: UserRole.TEAM_MEMBER,
+    })),
+  ];
+  const users: User[] = [];
+  for (const account of accounts) {
+    users.push(
+      await prisma.user.upsert({
+        where: { email: account.email },
         update: {},
-        create: {
-          name: m.name,
-          email: m.email,
-          passwordHash: password,
-          role: UserRole.TEAM_MEMBER,
-        },
+        create: { ...account, passwordHash },
       }),
-    ),
-  );
+    );
+  }
+  const manager = users.find(
+    (user) => user.email === SEED_SETTINGS.manager.email,
+  )!;
+  const projects: Project[] = [];
+  for (const project of SEED_SETTINGS.projects)
+    projects.push(
+      (await prisma.project.findFirst({ where: { name: project.name } })) ||
+        (await prisma.project.create({ data: project })),
+    );
 
-  console.log('✅ Users created');
-
-  // ─── Projects ──────────────────────────────────────────
-  const projects = await Promise.all(
-    SEED_SETTINGS.projects.map(async (project) => {
-      const existingProject = await prisma.project.findFirst({
-        where: { name: project.name },
-      });
-      return existingProject || prisma.project.create({ data: project });
-    }),
-  );
-
-  console.log('✅ Projects created');
-
-  // ─── Reports ───────────────────────────────────────────
-  const now = new Date();
-  const getWeekStart = (weeksAgo: number) => {
-    const d = new Date(now);
-    d.setDate(d.getDate() - d.getDay() + 1 - weeksAgo * 7);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  };
-  const getWeekEnd = (weekStart: Date) => {
-    const d = new Date(weekStart);
-    d.setDate(d.getDate() + 6);
-    d.setHours(23, 59, 59, 999);
-    return d;
-  };
-
-  // Create reports for each member across several weeks
-  for (const member of members) {
-    for (let w = 0; w < SEED_SETTINGS.weeksToSeed; w++) {
-      const weekStart = getWeekStart(w);
-      const weekEnd = getWeekEnd(weekStart);
-      const existingReport = await prisma.report.findFirst({
-        where: { userId: member.id, weekStart },
-        select: { id: true },
-      });
-      if (existingReport) continue;
-
-      const status =
-        w === 0
-          ? ReportStatus.SUBMITTED
-          : w === 1
-          ? ReportStatus.APPROVED
-          : w === 2
-          ? ReportStatus.DRAFT
-          : ReportStatus.NEEDS_CORRECTION;
-
-      const report = await prisma.report.create({
-        data: {
-          userId: member.id,
-          projectId: projects[w % projects.length].id,
-          weekStart,
-          weekEnd,
-          status,
-          notes: `Week ${w + 1} notes for ${member.name}`,
-          latestVersionNumber: w === 1 ? 2 : 1,
-          submittedAt: status !== ReportStatus.DRAFT ? weekEnd : null,
-          approvedAt: status === ReportStatus.APPROVED ? weekEnd : null,
-          tasks: {
-            create: [...SEED_SETTINGS.seedTasks],
-          },
-          nextWeekTasks: {
-            create: [...SEED_SETTINGS.seedNextWeekTasks],
-          },
-          blockers: {
-            create: [
-              {
-                description: 'Waiting for API credentials from client',
-                isKeyIssue: w === 0,
-                isResolved: w !== 0,
-              },
-            ],
-          },
-          achievements: {
-            create: [
-              {
-                description: 'Completed sprint backlog ahead of schedule',
-                isKeyAchievement: w === 1,
-              },
-            ],
-          },
-          workHours: {
-            create: [...SEED_SETTINGS.seedWorkHours],
-          },
-        },
-        include: { tasks: true },
-      });
-
-      // Create version snapshots
-      if (status !== ReportStatus.DRAFT) {
-        await prisma.reportVersion.create({
-          data: {
-            reportId: report.id,
-            versionNumber: 1,
-            snapshotJson: {
-              reportId: report.id,
-              tasks: report.tasks.map((t) => ({ taskName: t.taskName })),
-              weekStart,
-              weekEnd,
+  for (const member of users.filter((user) => user.role === "TEAM_MEMBER")) {
+    for (let offset = 0; offset < 5; offset++) {
+      if (
+        offset === 4 &&
+        (await prisma.reportVersion.count({
+          where: { versionNumber: 2, report: { userId: member.id } },
+        }))
+      )
+        continue;
+      const approvedDemo = offset === 1 || offset === 4;
+      const weekStart = new Date(weekOf().getTime() - offset * 7 * DAY_MS);
+      const weekEnd = new Date(weekStart.getTime() + 6 * DAY_MS);
+      if (
+        await prisma.report.findUnique({
+          where: { userId_weekStart: { userId: member.id, weekStart } },
+        })
+      )
+        continue;
+      await prisma.$transaction(async (tx) => {
+        // Nested services share one transaction so a seed report cannot be left half-created.
+        const client = {
+          report: tx.report,
+          project: tx.project,
+          reportVersion: tx.reportVersion,
+          review: tx.review,
+          $transaction: (
+            callback: (transaction: Prisma.TransactionClient) => unknown,
+          ) => callback(tx),
+        } as unknown as PrismaService;
+        const reports = new ReportsService(client);
+        const workflow = new ReportWorkflowService(client);
+        const report = await reports.create(member.id, {
+          weekStart: weekStart.toISOString().slice(0, 10),
+          weekEnd: weekEnd.toISOString().slice(0, 10),
+          projectId: projects[offset % projects.length].id,
+          notes: `Week ${offset + 1} notes for ${member.name}`,
+          tasks: SEED_SETTINGS.seedTasks.map((task) => ({ ...task })),
+          nextWeekTasks: SEED_SETTINGS.seedNextWeekTasks.map((task) => ({
+            ...task,
+          })),
+          blockers: [
+            {
+              description: "Waiting for client API credentials",
+              isKeyIssue: true,
+              isResolved: offset !== 0,
             },
-            createdById: member.id,
-          },
+          ],
+          achievements: [
+            {
+              description: "Completed the planned delivery",
+              isKeyAchievement: true,
+            },
+          ],
+          workHours: SEED_SETTINGS.seedWorkHours.map((hour) => ({ ...hour })),
         });
-      }
-
-      // Create reviews for non-draft reports
-      if (status === ReportStatus.APPROVED || status === ReportStatus.NEEDS_CORRECTION) {
-        const version = await prisma.reportVersion.findFirst({
-          where: { reportId: report.id, versionNumber: 1 },
+        if (offset === 2) return;
+        await workflow.submit(report.id, member.id);
+        if (approvedDemo || offset === 3)
+          await workflow.requestChanges(
+            report.id,
+            manager.id,
+            "Please add the delivery verification details.",
+          );
+        if (approvedDemo) {
+          await reports.update(report.id, member.id, {
+            notes: "Delivery verified and documented after manager feedback.",
+          });
+          await workflow.submit(report.id, member.id);
+          await workflow.approve(report.id, manager.id);
+        }
+        // Historical demo events happen within their reporting week, never in the future.
+        const firstSubmission = new Date(
+          Math.min(Date.now(), weekStart.getTime() + 4 * DAY_MS),
+        );
+        const versions = await tx.reportVersion.findMany({
+          where: { reportId: report.id },
+          orderBy: { versionNumber: "asc" },
         });
-
-        await prisma.review.create({
+        for (const version of versions) {
+          const timestamp = new Date(
+            Math.min(
+              Date.now(),
+              firstSubmission.getTime() + (version.versionNumber - 1) * 3600000,
+            ),
+          );
+          await tx.reportVersion.update({
+            where: { id: version.id },
+            data: { submittedAt: timestamp },
+          });
+          await tx.review.updateMany({
+            where: { reportVersionId: version.id },
+            data: { createdAt: timestamp },
+          });
+        }
+        const latest = new Date(
+          Math.min(
+            Date.now(),
+            firstSubmission.getTime() + (versions.length - 1) * 3600000,
+          ),
+        );
+        await tx.report.update({
+          where: { id: report.id },
           data: {
-            reportId: report.id,
-            reportVersionId: version?.id,
-            reviewerId: manager.id,
-            action:
-              status === ReportStatus.APPROVED
-                ? ReviewAction.APPROVED
-                : ReviewAction.CHANGES_REQUESTED,
-            comment:
-              status === ReportStatus.APPROVED
-                ? 'Good work this week!'
-                : 'Please provide more details on the blockers section.',
+            submittedAt: latest,
+            approvedAt: approvedDemo ? latest : null,
           },
         });
-      }
+      });
     }
   }
-
-  console.log('✅ Reports, versions, and reviews created');
-  console.log('🎉 Seed completed!');
+  console.log(
+    "Seed ready: admin, manager, four members, four reporting weeks, and a complete two-version correction example.",
+  );
 }
-
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .finally(() => prisma.$disconnect());

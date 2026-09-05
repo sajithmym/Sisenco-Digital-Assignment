@@ -1,4 +1,4 @@
-import { AUTH_SETTINGS } from '../../settings';
+import { AUTH_SETTINGS } from "../../settings";
 
 /**
  * @deprecated Use AUTH_SETTINGS from '../../settings' directly.
@@ -8,5 +8,5 @@ export const AUTH_CONSTANTS = {
   PASSWORD_HASH_ROUNDS: AUTH_SETTINGS.passwordHashRounds,
   ACCESS_TOKEN_EXPIRY: AUTH_SETTINGS.jwtAccessExpiresIn,
   REFRESH_TOKEN_EXPIRY: AUTH_SETTINGS.jwtRefreshExpiresIn,
-  REFRESH_TOKEN_EXPIRY_DAYS: AUTH_SETTINGS.jwtRefreshExpiresInDays,
+  REFRESH_TOKEN_EXPIRY_DAYS: AUTH_SETTINGS.refreshCookie.maxAge / 86_400_000,
 } as const;

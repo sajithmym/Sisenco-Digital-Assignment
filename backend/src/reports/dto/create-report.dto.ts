@@ -12,46 +12,55 @@ import {
   IsBoolean,
   IsUUID,
   ArrayMaxSize,
-} from 'class-validator';
-import { Type } from 'class-transformer';
-import { REPORT_SETTINGS } from '../../settings';
+  ValidateIf,
+  MinLength,
+  Matches,
+} from "class-validator";
+import { Type, Transform } from "class-transformer";
+import { REPORT_SETTINGS } from "../../settings";
 
 class CreateTaskDto {
   @IsString()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === "string" ? value.trim() : value,
+  )
+  @MinLength(1)
   @MaxLength(500)
   taskName: string;
 
-  @IsOptional()
-  @IsEnum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'])
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsEnum(["LOW", "MEDIUM", "HIGH", "CRITICAL"])
   priority?: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsInt()
   @Min(0)
   @Max(100)
   plannedPercentage?: number;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsInt()
   @Min(0)
   @Max(100)
   actualPercentage?: number;
 
-  @IsOptional()
-  @IsEnum(['TODO', 'IN_PROGRESS', 'DONE', 'BLOCKED'])
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsEnum(["TODO", "IN_PROGRESS", "DONE", "BLOCKED"])
   status?: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsInt()
   @Min(0)
+  @Max(10080)
   plannedMinutes?: number;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsInt()
   @Min(0)
+  @Max(10080)
   actualMinutes?: number;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsString()
   @MaxLength(500)
   deliverable?: string;
@@ -59,10 +68,14 @@ class CreateTaskDto {
 
 class CreateNextWeekTaskDto {
   @IsString()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === "string" ? value.trim() : value,
+  )
+  @MinLength(1)
   @MaxLength(500)
   description: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsInt()
   @Min(0)
   sortOrder?: number;
@@ -70,82 +83,93 @@ class CreateNextWeekTaskDto {
 
 class CreateBlockerDto {
   @IsString()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === "string" ? value.trim() : value,
+  )
+  @MinLength(1)
   @MaxLength(500)
   description: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsBoolean()
   isKeyIssue?: boolean;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsBoolean()
   isResolved?: boolean;
 }
 
 class CreateAchievementDto {
   @IsString()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === "string" ? value.trim() : value,
+  )
+  @MinLength(1)
   @MaxLength(500)
   description: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsBoolean()
   isKeyAchievement?: boolean;
 }
 
 class CreateWorkHourDto {
-  @IsEnum(['DEVELOPMENT', 'TESTING', 'MEETINGS', 'DOCUMENTATION', 'OTHER'])
+  @IsEnum(["DEVELOPMENT", "TESTING", "MEETINGS", "DOCUMENTATION", "OTHER"])
   type: string;
 
   @IsInt()
   @Min(0)
+  @Max(10080)
   minutes: number;
 }
 
 export class CreateReportDto {
   @IsOptional()
   @IsUUID()
-  projectId?: string;
+  projectId?: string | null;
 
-  @IsDateString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  @IsDateString({ strict: true })
   weekStart: string;
 
-  @IsDateString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  @IsDateString({ strict: true })
   weekEnd: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsString()
   @MaxLength(2000)
   notes?: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsArray()
   @ArrayMaxSize(REPORT_SETTINGS.maxItemsPerSection)
   @ValidateNested({ each: true })
   @Type(() => CreateTaskDto)
   tasks?: CreateTaskDto[];
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsArray()
   @ArrayMaxSize(REPORT_SETTINGS.maxItemsPerSection)
   @ValidateNested({ each: true })
   @Type(() => CreateNextWeekTaskDto)
   nextWeekTasks?: CreateNextWeekTaskDto[];
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsArray()
   @ArrayMaxSize(REPORT_SETTINGS.maxItemsPerSection)
   @ValidateNested({ each: true })
   @Type(() => CreateBlockerDto)
   blockers?: CreateBlockerDto[];
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsArray()
   @ArrayMaxSize(REPORT_SETTINGS.maxItemsPerSection)
   @ValidateNested({ each: true })
   @Type(() => CreateAchievementDto)
   achievements?: CreateAchievementDto[];
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsArray()
   @ArrayMaxSize(REPORT_SETTINGS.maxItemsPerSection)
   @ValidateNested({ each: true })

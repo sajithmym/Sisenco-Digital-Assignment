@@ -1,6 +1,7 @@
 import apiClient from "@/lib/api-client";
 import type {
   Report,
+  SubmissionRow,
   PaginatedResponse,
   DashboardSummary,
   StatusDistribution,
@@ -11,6 +12,19 @@ import type {
 } from "@/types";
 
 export const managerApi = {
+  async getRoster(params: {
+    page?: number;
+    limit?: number;
+    weekStart?: string;
+    weekEnd?: string;
+    userId?: string;
+    status?: string;
+  }): Promise<PaginatedResponse<SubmissionRow>> {
+    const response = await apiClient.get("/manager/dashboard/roster", {
+      params,
+    });
+    return { data: response.data.data, meta: response.data.meta };
+  },
   // ─── Reports ──────────────────────────────────────────
   async getTeamReports(params?: {
     page?: number;
@@ -39,44 +53,69 @@ export const managerApi = {
   },
 
   // ─── Dashboard ────────────────────────────────────────
-  async getSummary(weekStart?: string, weekEnd?: string): Promise<DashboardSummary> {
+  async getSummary(
+    weekStart?: string,
+    weekEnd?: string,
+  ): Promise<DashboardSummary> {
     const response = await apiClient.get("/manager/dashboard/summary", {
       params: { weekStart, weekEnd },
     });
     return response.data.data;
   },
 
-  async getStatusDistribution(weekStart?: string, weekEnd?: string): Promise<StatusDistribution[]> {
-    const response = await apiClient.get("/manager/dashboard/status-distribution", {
-      params: { weekStart, weekEnd },
-    });
+  async getStatusDistribution(
+    weekStart?: string,
+    weekEnd?: string,
+  ): Promise<StatusDistribution[]> {
+    const response = await apiClient.get(
+      "/manager/dashboard/status-distribution",
+      {
+        params: { weekStart, weekEnd },
+      },
+    );
     return response.data.data;
   },
 
-  async getTaskTrends(weeks?: number): Promise<TaskTrend[]> {
+  async getTaskTrends(weeks?: number, weekEnd?: string): Promise<TaskTrend[]> {
     const response = await apiClient.get("/manager/dashboard/task-trends", {
-      params: { weeks },
+      params: { weeks, weekEnd },
     });
     return response.data.data;
   },
 
-  async getProjectWorkload(weekStart?: string, weekEnd?: string): Promise<ProjectWorkload[]> {
-    const response = await apiClient.get("/manager/dashboard/project-workload", {
-      params: { weekStart, weekEnd },
-    });
+  async getProjectWorkload(
+    weekStart?: string,
+    weekEnd?: string,
+  ): Promise<ProjectWorkload[]> {
+    const response = await apiClient.get(
+      "/manager/dashboard/project-workload",
+      {
+        params: { weekStart, weekEnd },
+      },
+    );
     return response.data.data;
   },
 
-  async getTimeDistribution(weekStart?: string, weekEnd?: string): Promise<TimeDistribution[]> {
-    const response = await apiClient.get("/manager/dashboard/time-distribution", {
-      params: { weekStart, weekEnd },
-    });
+  async getTimeDistribution(
+    weekStart?: string,
+    weekEnd?: string,
+  ): Promise<TimeDistribution[]> {
+    const response = await apiClient.get(
+      "/manager/dashboard/time-distribution",
+      {
+        params: { weekStart, weekEnd },
+      },
+    );
     return response.data.data;
   },
 
-  async getRecentActivity(limit?: number): Promise<ActivityItem[]> {
+  async getRecentActivity(
+    limit?: number,
+    weekStart?: string,
+    weekEnd?: string,
+  ): Promise<ActivityItem[]> {
     const response = await apiClient.get("/manager/dashboard/activity", {
-      params: { limit },
+      params: { limit, weekStart, weekEnd },
     });
     return response.data.data;
   },

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useResource } from "@/lib/use-resource";
 import { reportsApi } from "@/services/reports.api";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -9,7 +10,11 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatDate, formatMinutes } from "@/lib/utils";
+import {
+  ReportContent,
+  ReportHistory,
+} from "@/features/reports/components/report-content";
+import { formatDate } from "@/lib/utils";
 import type { Report } from "@/types";
 import { ConfirmationDialog } from "@/components/shared/confirmation-dialog";
 import { useToast } from "@/components/ui/toast";
@@ -17,40 +22,39 @@ import { useToast } from "@/components/ui/toast";
 export default function ReportDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [report, setReport] = useState<Report | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showSubmitConfirmation, setShowSubmitConfirmation] = useState(false);
   const { toast } = useToast();
 
-  const fetchReport = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await reportsApi.getById(params.id as string);
-      setReport(data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to load report");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchReport();
-  }, [params.id]);
+  const loader = useCallback(
+    () => reportsApi.getById(params.id as string),
+    [params.id],
+  );
+  const {
+    data: report,
+    loading,
+    error,
+    reload: fetchReport,
+  } = useResource(loader);
 
   const handleSubmit = async () => {
     if (!report) return;
     setSubmitting(true);
     try {
       await reportsApi.submit(report.id);
-      toast({ variant: "success", title: "Report submitted", description: "A version snapshot was created for manager review." });
+      toast({
+        variant: "success",
+        title: "Report submitted",
+        description: "A version snapshot was created for manager review.",
+      });
       setShowSubmitConfirmation(false);
       fetchReport();
     } catch (err: any) {
-      toast({ variant: "error", title: "Could not submit report", description: err.response?.data?.message || "Please try again." });
+      toast({
+        variant: "error",
+        title: "Could not submit report",
+        description: err.response?.data?.message || "Please try again.",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -60,7 +64,8 @@ export default function ReportDetailPage() {
   if (error) return <ErrorState message={error} onRetry={fetchReport} />;
   if (!report) return <ErrorState message="Report not found" />;
 
-  const isEditable = report.status === "DRAFT" || report.status === "NEEDS_CORRECTION";
+  const isEditable =
+    report.status === "DRAFT" || report.status === "NEEDS_CORRECTION";
 
   return (
     <div className="space-y-6">
@@ -72,8 +77,18 @@ export default function ReportDetailPage() {
             <StatusBadge status={report.status} />
             {isEditable && (
               <>
-                <Button variant="outline" onClick={() => router.push(`/reports/${report.id}/edit`)}>Edit report</Button>
-                <Button onClick={() => setShowSubmitConfirmation(true)} disabled={submitting}>Submit report</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/reports/${report.id}/edit`)}
+                >
+                  Edit report
+                </Button>
+                <Button
+                  onClick={() => setShowSubmitConfirmation(true)}
+                  disabled={submitting}
+                >
+                  Submit report
+                </Button>
               </>
             )}
           </div>
@@ -82,157 +97,36 @@ export default function ReportDetailPage() {
 
       {report.status === "NEEDS_CORRECTION" && report.reviews?.[0]?.comment && (
         <Card className="border-amber-200 bg-amber-50/60">
-          <CardHeader><CardTitle className="text-amber-950">Manager feedback</CardTitle></CardHeader>
-          <CardContent><p className="text-sm text-amber-950">{report.reviews[0].comment}</p><p className="mt-2 text-xs text-amber-800">Requested by {report.reviews[0].reviewer?.name || "your manager"} on {formatDate(report.reviews[0].createdAt)}</p></CardContent>
-        </Card>
-      )}
-
-      {/* Notes */}
-      {report.notes && (
-        <Card>
           <CardHeader>
-            <CardTitle>Notes</CardTitle>
+            <CardTitle className="text-amber-950">Manager feedback</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm">{report.notes}</p>
+            <p className="text-sm text-amber-950">
+              {report.reviews[0].comment}
+            </p>
+            <p className="mt-2 text-xs text-amber-800">
+              Requested by {report.reviews[0].reviewer?.name || "your manager"}{" "}
+              on {formatDate(report.reviews[0].createdAt)}
+            </p>
           </CardContent>
         </Card>
       )}
 
-      {/* Tasks */}
-      {report.tasks && report.tasks.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Tasks</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {report.tasks.map((task) => (
-                <div key={task.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border rounded-md">
-                  <div>
-                    <p className="font-medium">{task.taskName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {task.priority} • {task.status} • {formatMinutes(task.actualMinutes)} / {formatMinutes(task.plannedMinutes)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm">{task.actualPercentage}%</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Blockers */}
-      {report.blockers && report.blockers.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Blockers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {report.blockers.map((b) => (
-                <li key={b.id} className="flex items-center gap-2 text-sm">
-                  <span className={b.isKeyIssue ? "text-red-500" : "text-gray-400"}>●</span>
-                  {b.description}
-                  {b.isResolved && <span className="text-green-600 text-xs">(Resolved)</span>}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Achievements */}
-      {report.achievements && report.achievements.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Achievements</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {report.achievements.map((a) => (
-                <li key={a.id} className="flex items-center gap-2 text-sm">
-                  <span className={a.isKeyAchievement ? "text-yellow-500" : "text-gray-400"}>★</span>
-                  {a.description}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Work Hours */}
-      {report.workHours && report.workHours.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Work Hours</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {report.workHours.map((wh) => (
-                <div key={wh.id} className="flex justify-between text-sm">
-                  <span>{wh.type}</span>
-                  <span>{formatMinutes(wh.minutes)}</span>
-                </div>
-              ))}
-              <div className="border-t pt-2 flex justify-between font-medium">
-                <span>Total</span>
-                <span>
-                  {formatMinutes(report.workHours.reduce((sum, wh) => sum + wh.minutes, 0))}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {report.versions && report.versions.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle>Version history</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {report.versions.map((version) => (
-              <div key={version.id} className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
-                <div><p className="font-medium">Version {version.versionNumber}{version.versionNumber === report.latestVersionNumber ? " (current)" : ""}</p><p className="text-sm text-muted-foreground">Submitted {formatDate(version.submittedAt)}</p></div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Reviews */}
-      {report.reviews && report.reviews.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Reviews</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {report.reviews.map((review) => (
-                <div key={review.id} className="p-3 border rounded-md">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium">{review.reviewer?.name}</p>
-                    <StatusBadge status={review.action === "APPROVED" ? "APPROVED" : "NEEDS_CORRECTION"} />
-                  </div>
-                  {review.comment && (
-                    <p className="mt-2 text-sm text-muted-foreground">{review.comment}</p>
-                  )}
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formatDate(review.createdAt)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <ReportContent content={report} />
+      <ReportHistory report={report} />
 
       <Button variant="outline" onClick={() => router.back()}>
         Back
       </Button>
-      <ConfirmationDialog open={showSubmitConfirmation} onOpenChange={setShowSubmitConfirmation} title="Submit this report?" description="Submitting creates an immutable version and makes the report read-only until a manager requests changes." confirmLabel="Submit report" loading={submitting} onConfirm={handleSubmit} />
+      <ConfirmationDialog
+        open={showSubmitConfirmation}
+        onOpenChange={setShowSubmitConfirmation}
+        title="Submit this report?"
+        description="Submitting creates an immutable version and makes the report read-only until a manager requests changes."
+        confirmLabel="Submit report"
+        loading={submitting}
+        onConfirm={handleSubmit}
+      />
     </div>
   );
 }

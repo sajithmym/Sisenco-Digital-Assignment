@@ -94,7 +94,7 @@ export interface ReportVersion {
   id: string;
   reportId: string;
   versionNumber: number;
-  snapshotJson: any;
+  snapshotJson: ReportContentData;
   submittedAt: string;
   createdById: string;
   createdBy?: { id: string; name: string };
@@ -117,6 +117,10 @@ export interface Review {
 
 // ─── Dashboard ───────────────────────────────────────────
 export interface DashboardSummary {
+  expectedCount: number;
+  pendingCount: number;
+  lateCount: number;
+  notStartedCount: number;
   totalReports: number;
   submittedCount: number;
   approvedCount: number;
@@ -197,4 +201,28 @@ export interface ApiPaginatedResponse<T> extends ApiResponse<T[]> {
 export interface AuthResponse {
   user: User;
   accessToken: string;
+}
+
+export interface ReportContentData {
+  weekStart?: string;
+  weekEnd?: string;
+  projectName?: string | null;
+  project?: { name: string } | null;
+  notes?: string | null;
+  tasks?: Partial<ReportTask>[];
+  nextWeekTasks?: NextWeekTask[];
+  blockers?: Blocker[];
+  achievements?: Achievement[];
+  workHours?: WorkHour[];
+}
+export interface SubmissionRow {
+  userId: string;
+  name: string;
+  weekStart: string;
+  deadline: string;
+  status: string;
+  reportId: string | null;
+  submittedAt: string | null;
+  submitted: boolean;
+  late: boolean;
 }

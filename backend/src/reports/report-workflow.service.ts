@@ -3,11 +3,12 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
-} from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { PrismaService } from '../database/prisma.service';
-import { ReportStatus, ReviewAction } from '../common/enums';
-import { REPORT_SETTINGS } from '../settings';
+} from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../database/prisma.service";
+import { ReportStatus, ReviewAction } from "../common/enums";
+import { lockReport } from "./report-lock";
+import { REPORT_SETTINGS } from "../settings";
 
 type SnapshotReport = Prisma.ReportGetPayload<{
   include: {
@@ -29,6 +30,7 @@ export class ReportWorkflowService {
    */
   async submit(reportId: string, userId: string) {
     return this.prisma.$transaction(async (tx) => {
+      await lockReport(tx, reportId);
       const report = await tx.report.findUnique({
         where: { id: reportId },
         include: {
@@ -41,14 +43,33 @@ export class ReportWorkflowService {
         },
       });
 
-      if (!report) throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
-      if (report.userId !== userId) throw new ForbiddenException(REPORT_SETTINGS.messages.reportOwnershipDenied);
-      if (!REPORT_SETTINGS.editableStatuses.includes(report.status as ReportStatus.DRAFT | ReportStatus.NEEDS_CORRECTION)) {
-        throw new BadRequestException(REPORT_SETTINGS.messages.cannotSubmitInStatus(report.status as ReportStatus));
+      if (!report)
+        throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
+      if (report.userId !== userId)
+        throw new ForbiddenException(
+          REPORT_SETTINGS.messages.reportOwnershipDenied,
+        );
+      if (
+        !REPORT_SETTINGS.editableStatuses.includes(
+          report.status as ReportStatus.DRAFT | ReportStatus.NEEDS_CORRECTION,
+        )
+      ) {
+        throw new BadRequestException(
+          REPORT_SETTINGS.messages.cannotSubmitInStatus(
+            report.status as ReportStatus,
+          ),
+        );
       }
       if (report.tasks.length < REPORT_SETTINGS.minTasksForSubmission) {
-        throw new BadRequestException(REPORT_SETTINGS.messages.reportRequiresTask);
+        throw new BadRequestException(
+          REPORT_SETTINGS.messages.reportRequiresTask,
+        );
       }
+
+      if (!report.projectId)
+        throw new BadRequestException("Select a project before submitting.");
+      if (report.tasks.some((task) => !task.taskName.trim()))
+        throw new BadRequestException("Task names cannot be blank.");
 
       const nextVersion = report.latestVersionNumber + 1;
       const transitioned = await tx.report.updateMany({
@@ -90,28 +111,36 @@ export class ReportWorkflowService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      await lockReport(tx, reportId);
       const report = await tx.report.findUnique({ where: { id: reportId } });
-      if (!report) throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
+      if (!report)
+        throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
       if (report.status !== ReportStatus.SUBMITTED) {
-        throw new BadRequestException(REPORT_SETTINGS.messages.reportMustBeSubmitted);
+        throw new BadRequestException(
+          REPORT_SETTINGS.messages.reportMustBeSubmitted,
+        );
       }
 
       const version = await tx.reportVersion.findFirst({
         where: { reportId, versionNumber: report.latestVersionNumber },
       });
 
+      if (!version)
+        throw new BadRequestException("The submitted version is missing.");
       const transitioned = await tx.report.updateMany({
         where: { id: reportId, status: ReportStatus.SUBMITTED },
         data: { status: ReportStatus.NEEDS_CORRECTION },
       });
       if (transitioned.count !== 1) {
-        throw new BadRequestException(REPORT_SETTINGS.messages.reportMustBeSubmitted);
+        throw new BadRequestException(
+          REPORT_SETTINGS.messages.reportMustBeSubmitted,
+        );
       }
 
       await tx.review.create({
         data: {
           reportId,
-          reportVersionId: version?.id,
+          reportVersionId: version.id,
           reviewerId,
           action: ReviewAction.CHANGES_REQUESTED,
           comment,
@@ -127,28 +156,36 @@ export class ReportWorkflowService {
    */
   async approve(reportId: string, reviewerId: string) {
     return this.prisma.$transaction(async (tx) => {
+      await lockReport(tx, reportId);
       const report = await tx.report.findUnique({ where: { id: reportId } });
-      if (!report) throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
+      if (!report)
+        throw new NotFoundException(REPORT_SETTINGS.messages.reportNotFound);
       if (report.status !== ReportStatus.SUBMITTED) {
-        throw new BadRequestException(REPORT_SETTINGS.messages.reportMustBeSubmitted);
+        throw new BadRequestException(
+          REPORT_SETTINGS.messages.reportMustBeSubmitted,
+        );
       }
 
       const version = await tx.reportVersion.findFirst({
         where: { reportId, versionNumber: report.latestVersionNumber },
       });
 
+      if (!version)
+        throw new BadRequestException("The submitted version is missing.");
       const transitioned = await tx.report.updateMany({
         where: { id: reportId, status: ReportStatus.SUBMITTED },
         data: { status: ReportStatus.APPROVED, approvedAt: new Date() },
       });
       if (transitioned.count !== 1) {
-        throw new BadRequestException(REPORT_SETTINGS.messages.reportMustBeSubmitted);
+        throw new BadRequestException(
+          REPORT_SETTINGS.messages.reportMustBeSubmitted,
+        );
       }
 
       await tx.review.create({
         data: {
           reportId,
-          reportVersionId: version?.id,
+          reportVersionId: version.id,
           reviewerId,
           action: ReviewAction.APPROVED,
         },
@@ -172,7 +209,7 @@ export class ReportWorkflowService {
           },
         },
       },
-      orderBy: { versionNumber: 'desc' },
+      orderBy: { versionNumber: "desc" },
     });
   }
 
@@ -181,7 +218,7 @@ export class ReportWorkflowService {
       id: report.id,
       userId: report.userId,
       projectId: report.projectId,
-      projectName: report.project?.name,
+      projectName: report.project?.name || null,
       weekStart: report.weekStart,
       weekEnd: report.weekEnd,
       status: report.status,

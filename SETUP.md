@@ -8,7 +8,7 @@ Step-by-step guide to run **Weekly Report Generator** locally — frontend and b
 
 | Tool | Version | Check |
 |------|---------|-------|
-| Node.js | >= 18 | `node --version` |
+| Node.js | >= 24 | `node --version` |
 | npm | >= 9 | `npm --version` |
 | PostgreSQL | 14+ | `psql --version` (or use Docker) |
 
@@ -166,6 +166,7 @@ Frontend runs at **http://localhost:3000**.
 
 | Role | Email | Password |
 |------|-------|----------|
+| Admin | `admin@example.com` | `password123` |
 | Manager | `sarah@example.com` | `password123` |
 | Team Member | `kasun@example.com` | `password123` |
 | Team Member | `ayesha@example.com` | `password123` |
@@ -184,7 +185,7 @@ export const AUTH_SETTINGS = {
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-change-in-production',
   jwtAccessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
-  jwtRefreshExpiresInDays: 7,
+  // Cookie/database expiry is derived from JWT_REFRESH_EXPIRES_IN.
   passwordHashRounds: 12,
 } as const;
 ```
@@ -210,7 +211,7 @@ private async generateTokens(userId: string, email: string, role: string) {
     this.jwtService.signAsync(payload, {
       expiresIn: AUTH_SETTINGS.jwtAccessExpiresIn,
     }),
-    this.jwtService.signAsync(payload, {
+    this.jwtService.signAsync({ ...payload, jti: randomUUID() }, {
       secret: AUTH_SETTINGS.jwtRefreshSecret,   // refresh token uses its own secret
       expiresIn: AUTH_SETTINGS.jwtRefreshExpiresIn,
     }),
@@ -242,7 +243,7 @@ The refresh token is sent only as a Secure, HttpOnly cookie and is stored as a h
 - Set `ALLOW_SELF_REGISTRATION=false` for an internal deployment.
 - When frontend and API use different sites, set `AUTH_COOKIE_SAME_SITE=none`; both must use HTTPS.
 - Deploy database changes with `npx prisma migrate deploy`. Do not use `db:init`, `db:fresh`, or seed data in production.
-- For an existing local database created before migrations were committed, back it up and use `npx prisma migrate reset` during development before applying this initial migration.
+- Existing matching local tables can be baselined without resetting data using `npm run db:baseline`. If old migration files were lost, `npm run db:baseline -- --replace-missing-history` first checks schema equivalence and backs up the old migration metadata before replacing that history. Run `npm run db:repair-demo` once to repair known legacy demo counters and reporting dates, then `npm run seed` to provision the demo admin and a complete correction example.
 
 ---
 
@@ -268,3 +269,14 @@ The refresh token is sent only as a Secure, HttpOnly cookie and is stored as a h
 | `P1001: Can't reach database server` | `DATABASE_URL` in `.env` has wrong host/port/password |
 | `JWT_SECRET` too short | Generate with `openssl rand -hex 32` |
 | Frontend can't reach API | `NEXT_PUBLIC_API_BASE_URL` in `.env.local` must match backend `PORT` + `/api/v1` |
+
+
+## Verified assignment fixes
+
+See [docs/assignment-fixes.md](docs/assignment-fixes.md) for the implementation changes, reporting rules, tests, and remaining external submission items.
+
+Reporting weeks run Monday-Sunday in UTC. A submission is due before the following Monday at 00:00 UTC. Compliance is submitted member-weeks divided by expected member-weeks for the current active team roster; approval and correction retain submission credit. Pending means no submission; late includes overdue pending reports and reports first submitted after their deadline. Past membership is not inferred because the data model does not store membership history.
+
+From `backend/`, run `npm test -- --runInBand` for unit tests and `npm run test:e2e` for real HTTP/PostgreSQL checks. E2E tests create and migrate an isolated temporary schema in the local configured database, verify the workflow and seed, and remove only that test schema afterward.
+
+Use `npm run db:init` for local setup and `npx prisma migrate deploy` for deployment. Migration SQL and `migration_lock.toml` are tracked by Git; `.env` stays ignored. Node.js 24 or later is required by the backend and is the tested runtime.

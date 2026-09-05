@@ -3,15 +3,15 @@ import {
   UnauthorizedException,
   ConflictException,
   ForbiddenException,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { createHash } from 'crypto';
-import type ms from 'ms';
-import { Prisma } from '@prisma/client';
-import { PrismaService } from '../database/prisma.service';
-import { AUTH_SETTINGS, USER_SETTINGS } from '../settings';
-import { RegisterDto } from './dto';
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import * as bcrypt from "bcrypt";
+import { createHash, randomUUID } from "crypto";
+import type ms from "ms";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../database/prisma.service";
+import { AUTH_SETTINGS, USER_SETTINGS } from "../settings";
+import { RegisterDto } from "./dto";
 
 @Injectable()
 export class AuthService {
@@ -27,7 +27,9 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new ConflictException(AUTH_SETTINGS.messages.emailAlreadyRegistered);
+      throw new ConflictException(
+        AUTH_SETTINGS.messages.emailAlreadyRegistered,
+      );
     }
 
     const passwordHash = await bcrypt.hash(
@@ -54,8 +56,13 @@ export class AuthService {
       });
     } catch (error) {
       // Race condition: two requests with the same email — surface the real cause.
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException(AUTH_SETTINGS.messages.emailAlreadyRegistered);
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        throw new ConflictException(
+          AUTH_SETTINGS.messages.emailAlreadyRegistered,
+        );
       }
       throw error;
     }
@@ -76,7 +83,9 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException(AUTH_SETTINGS.messages.invalidCredentials);
+      throw new UnauthorizedException(
+        AUTH_SETTINGS.messages.invalidCredentials,
+      );
     }
 
     if (!user.isActive) {
@@ -86,7 +95,9 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException(AUTH_SETTINGS.messages.invalidCredentials);
+      throw new UnauthorizedException(
+        AUTH_SETTINGS.messages.invalidCredentials,
+      );
     }
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);
@@ -107,11 +118,16 @@ export class AuthService {
   async refreshTokens(refreshToken: string) {
     let payload: { sub: string };
     try {
-      payload = await this.jwtService.verifyAsync<{ sub: string }>(refreshToken, {
-        secret: AUTH_SETTINGS.jwtRefreshSecret,
-      });
+      payload = await this.jwtService.verifyAsync<{ sub: string }>(
+        refreshToken,
+        {
+          secret: AUTH_SETTINGS.jwtRefreshSecret,
+        },
+      );
     } catch {
-      throw new UnauthorizedException(AUTH_SETTINGS.messages.invalidRefreshToken);
+      throw new UnauthorizedException(
+        AUTH_SETTINGS.messages.invalidRefreshToken,
+      );
     }
 
     const tokenRecord = await this.prisma.refreshToken.findUnique({
@@ -120,16 +136,24 @@ export class AuthService {
     });
 
     if (!tokenRecord) {
-      throw new UnauthorizedException(AUTH_SETTINGS.messages.invalidRefreshToken);
+      throw new UnauthorizedException(
+        AUTH_SETTINGS.messages.invalidRefreshToken,
+      );
     }
 
     if (tokenRecord.userId !== payload.sub) {
-      throw new UnauthorizedException(AUTH_SETTINGS.messages.invalidRefreshToken);
+      throw new UnauthorizedException(
+        AUTH_SETTINGS.messages.invalidRefreshToken,
+      );
     }
 
     if (new Date() > tokenRecord.expiresAt) {
-      await this.prisma.refreshToken.deleteMany({ where: { id: tokenRecord.id } });
-      throw new UnauthorizedException(AUTH_SETTINGS.messages.expiredRefreshToken);
+      await this.prisma.refreshToken.deleteMany({
+        where: { id: tokenRecord.id },
+      });
+      throw new UnauthorizedException(
+        AUTH_SETTINGS.messages.expiredRefreshToken,
+      );
     }
 
     const user = tokenRecord.user;
@@ -141,11 +165,16 @@ export class AuthService {
     return this.prisma.$transaction(async (transaction) => {
       // Atomic compare-and-delete prevents a concurrent refresh from replaying the same token.
       const consumedToken = await transaction.refreshToken.deleteMany({
-        where: { id: tokenRecord.id, tokenHash: this.hashRefreshToken(refreshToken) },
+        where: {
+          id: tokenRecord.id,
+          tokenHash: this.hashRefreshToken(refreshToken),
+        },
       });
 
       if (consumedToken.count !== 1) {
-        throw new UnauthorizedException(AUTH_SETTINGS.messages.usedRefreshToken);
+        throw new UnauthorizedException(
+          AUTH_SETTINGS.messages.usedRefreshToken,
+        );
       }
 
       const tokens = await this.generateTokens(user.id, user.email, user.role);
@@ -195,10 +224,13 @@ export class AuthService {
       this.jwtService.signAsync(payload, {
         expiresIn: AUTH_SETTINGS.jwtAccessExpiresIn as ms.StringValue,
       }),
-      this.jwtService.signAsync(payload, {
-        secret: AUTH_SETTINGS.jwtRefreshSecret,
-        expiresIn: AUTH_SETTINGS.jwtRefreshExpiresIn as ms.StringValue,
-      }),
+      this.jwtService.signAsync(
+        { ...payload, jti: randomUUID() },
+        {
+          secret: AUTH_SETTINGS.jwtRefreshSecret,
+          expiresIn: AUTH_SETTINGS.jwtRefreshExpiresIn as ms.StringValue,
+        },
+      ),
     ]);
 
     return { accessToken, refreshToken };
@@ -220,12 +252,10 @@ export class AuthService {
   }
 
   private getRefreshTokenExpiry() {
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + AUTH_SETTINGS.jwtRefreshExpiresInDays);
-    return expiresAt;
+    return new Date(Date.now() + AUTH_SETTINGS.refreshCookie.maxAge);
   }
 
   private hashRefreshToken(token: string) {
-    return createHash('sha256').update(token).digest('hex');
+    return createHash("sha256").update(token).digest("hex");
   }
 }

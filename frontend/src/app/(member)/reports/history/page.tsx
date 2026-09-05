@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { Pagination } from "@/components/shared/pagination";
+import { useResource } from "@/lib/use-resource";
 import { reportsApi } from "@/services/reports.api";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -14,26 +16,17 @@ import { PAGINATION_SETTINGS } from "@/lib/settings";
 import type { Report, PaginatedResponse } from "@/types";
 
 export default function ReportHistoryPage() {
-  const [data, setData] = useState<PaginatedResponse<Report> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
-  const fetchHistory = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await reportsApi.getMyReports({ page: PAGINATION_SETTINGS.defaultPage, limit: PAGINATION_SETTINGS.historyLimit });
-      setData(result);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to load history");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchHistory();
-  }, []);
+  const loader = useCallback(
+    () =>
+      reportsApi.getMyReports({
+        page,
+        limit: PAGINATION_SETTINGS.defaultLimit,
+      }),
+    [page],
+  );
+  const { data, loading, error, reload: fetchHistory } = useResource(loader);
 
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={fetchHistory} />;
@@ -60,10 +53,12 @@ export default function ReportHistoryPage() {
                 <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
                     <p className="font-medium">
-                      Week of {formatDate(report.weekStart)} — {formatDate(report.weekEnd)}
+                      Week of {formatDate(report.weekStart)} —{" "}
+                      {formatDate(report.weekEnd)}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {report.project?.name || "No project"} • Version {report.latestVersionNumber}
+                      {report.project?.name || "No project"} • Version{" "}
+                      {report.latestVersionNumber}
                     </p>
                   </div>
                   <StatusBadge status={report.status} />
@@ -73,6 +68,7 @@ export default function ReportHistoryPage() {
           ))}
         </div>
       )}
+      {data && <Pagination meta={data.meta} onPage={setPage} />}
     </div>
   );
 }

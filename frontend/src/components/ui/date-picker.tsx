@@ -31,7 +31,7 @@ export function DatePicker({
 
   const selectedDate = value
     ? typeof value === "string"
-      ? new Date(value)
+      ? new Date(`${value.slice(0, 10)}T12:00:00`)
       : value
     : undefined;
 
@@ -55,7 +55,7 @@ export function DatePicker({
           className={cn(
             "w-full justify-start text-left font-normal",
             !selectedDate && "text-muted-foreground",
-            className
+            className,
           )}
           disabled={disabled}
         >
