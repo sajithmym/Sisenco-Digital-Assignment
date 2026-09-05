@@ -203,6 +203,10 @@ export interface AuthResponse {
   accessToken: string;
 }
 
+export interface RegistrationResponse {
+  user: Pick<User, "id" | "name" | "email" | "role" | "isActive" | "createdAt">;
+}
+
 export interface ReportContentData {
   weekStart?: string;
   weekEnd?: string;

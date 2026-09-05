@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { CheckCircle2, Clock3, ShieldCheck } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authApi } from "@/services/auth.api";
@@ -11,12 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getRoleHomeRoute } from "@/lib/settings";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
 
   const {
     register,
@@ -36,7 +35,7 @@ export default function RegisterPage() {
         email: data.email,
         password: data.password,
       });
-      router.push(getRoleHomeRoute(response.user.role));
+      setRegisteredEmail(response.user.email);
     } catch (err: any) {
       setError(err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
@@ -44,12 +43,50 @@ export default function RegisterPage() {
     }
   };
 
+  if (registeredEmail) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="items-center text-center">
+            <div className="mb-2 rounded-full bg-primary/10 p-3 text-primary">
+              <Clock3 className="h-7 w-7" aria-hidden="true" />
+            </div>
+            <CardTitle className="text-2xl">Account awaiting activation</CardTitle>
+            <CardDescription>
+              Your account has been created and saved securely.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5 text-center">
+            <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm font-medium break-all">
+              {registeredEmail}
+            </div>
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-left text-sm text-muted-foreground">
+              <div className="mb-2 flex items-center gap-2 font-medium text-foreground">
+                <ShieldCheck className="h-4 w-4 text-primary" aria-hidden="true" />
+                Administrator approval required
+              </div>
+              An administrator must activate your account before you can sign in.
+            </div>
+            <Button asChild className="w-full">
+              <Link href="/login">
+                <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                Go to sign in
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Create Account</CardTitle>
-          <CardDescription>Register as a team member</CardDescription>
+          <CardDescription>
+            Register as a team member. An administrator activates new accounts.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

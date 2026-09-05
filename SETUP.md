@@ -85,6 +85,11 @@ AUTH_COOKIE_SAME_SITE=lax
 ALLOW_SELF_REGISTRATION=true
 ```
 
+When `ALLOW_SELF_REGISTRATION=true`, public registration saves a team-member
+account in a pending state. An administrator must open **Users** and activate
+the account before the person can sign in. Set the value to `false` when all
+accounts should be created by an administrator or SSO.
+
 > **Important:** Prisma expands `DATABASE_URL` from the individual values above. Update each database field once; if `DB_PASSWORD` contains URL-reserved characters such as `@`, `:`, `/`, or `#`, URL-encode that value first.
 
 ### 2.4 Generate JWT secrets
@@ -242,7 +247,7 @@ The refresh token is sent only as a Secure, HttpOnly cookie and is stored as a h
 ## Production safety
 
 - Set `NODE_ENV=production`, distinct random JWT secrets of at least 32 characters, and a real `DATABASE_URL`.
-- Set `ALLOW_SELF_REGISTRATION=false` for an internal deployment.
+- Self-registered accounts are pending activation by default. Set `ALLOW_SELF_REGISTRATION=false` when only administrator-created users or SSO should create accounts.
 - When frontend and API use different sites, set `AUTH_COOKIE_SAME_SITE=none`; both must use HTTPS.
 - Deploy database changes with `npx prisma migrate deploy`. Do not use `db:init`, `db:fresh`, or seed data in production.
 - Existing matching local tables can be baselined without resetting data using `npm run db:baseline`. If old migration files were lost, `npm run db:baseline -- --replace-missing-history` first checks schema equivalence and backs up the old migration metadata before replacing that history. Run `npm run db:repair-demo` once to repair known legacy demo counters and reporting dates, then `npm run seed` to provision the demo admin and a complete correction example.

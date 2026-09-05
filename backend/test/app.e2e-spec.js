@@ -111,6 +111,50 @@ describe("HTTP authorization, reports, and dashboard with an isolated PostgreSQL
       .expect(201);
   });
 
+  it("keeps self-registered accounts pending until an administrator activates them", async () => {
+    const credentials = {
+      name: "Awaiting Approval",
+      email: "awaiting-approval@example.invalid",
+      password: "password123",
+    };
+    const registration = await request(http)
+      .post("/api/v1/auth/register")
+      .send(credentials)
+      .expect(201);
+
+    expect(registration.headers["set-cookie"]).toBeUndefined();
+    expect(registration.body.data).toMatchObject({
+      user: {
+        name: credentials.name,
+        email: credentials.email,
+        role: "TEAM_MEMBER",
+        isActive: false,
+      },
+    });
+    expect(registration.body.data.accessToken).toBeUndefined();
+
+    await request(http)
+      .post("/api/v1/auth/login")
+      .send({ email: credentials.email, password: credentials.password })
+      .expect(401);
+
+    await request(http)
+      .patch(`/api/v1/users/${registration.body.data.user.id}/status`)
+      .set(auth("admin"))
+      .send({ isActive: true })
+      .expect(200);
+
+    const login = await request(http)
+      .post("/api/v1/auth/login")
+      .send({ email: credentials.email, password: credentials.password })
+      .expect(200);
+    expect(login.body.data).toMatchObject({
+      user: { email: credentials.email, isActive: true },
+      accessToken: expect.any(String),
+    });
+    expect(login.headers["set-cookie"][0]).toContain("HttpOnly");
+  });
+
   it("creates private drafts and rejects blank fields/null arrays", async () => {
     await request(http)
       .post("/api/v1/reports")

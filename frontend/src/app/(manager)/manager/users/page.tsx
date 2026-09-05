@@ -147,7 +147,7 @@ export default function ManagerUsersPage() {
       await usersApi.updateStatus(statusUser.id, !statusUser.isActive);
       toast({
         variant: "success",
-        title: `User ${statusUser.isActive ? "deactivated" : "reactivated"}`,
+        title: `User ${statusUser.isActive ? "deactivated" : "activated"}`,
         description: `${statusUser.name}'s access has been updated.`,
       });
       setStatusUser(null);
@@ -274,7 +274,7 @@ export default function ManagerUsersPage() {
               <SelectContent>
                 <SelectItem value="ALL">All statuses</SelectItem>
                 <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="INACTIVE">Inactive</SelectItem>
+                <SelectItem value="INACTIVE">Pending activation</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -347,7 +347,7 @@ export default function ManagerUsersPage() {
                       <Badge
                         variant={user.isActive ? "success" : "destructive"}
                       >
-                        {user.isActive ? "Active" : "Inactive"}
+                        {user.isActive ? "Active" : "Pending activation"}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
                         {user._count?.reports || 0} reports
@@ -373,7 +373,7 @@ export default function ManagerUsersPage() {
                         onClick={() => setStatusUser(user)}
                       >
                         <ShieldCheck className="mr-1.5 h-4 w-4" />
-                        {user.isActive ? "Deactivate" : "Reactivate"}
+                        {user.isActive ? "Deactivate" : "Activate"}
                       </Button>
                     </div>
                   )}
@@ -534,14 +534,14 @@ export default function ManagerUsersPage() {
       <ConfirmationDialog
         open={Boolean(statusUser)}
         onOpenChange={(open) => !open && setStatusUser(null)}
-        title={`${statusUser?.isActive ? "Deactivate" : "Reactivate"} user?`}
+        title={`${statusUser?.isActive ? "Deactivate" : "Activate"} user?`}
         description={
           statusUser?.isActive
             ? `${statusUser.name} will no longer be able to sign in. Their reports and history remain protected.`
-            : `${statusUser?.name} will be able to sign in again.`
+            : `${statusUser?.name} will be able to sign in after activation.`
         }
         confirmLabel={
-          statusUser?.isActive ? "Deactivate user" : "Reactivate user"
+          statusUser?.isActive ? "Deactivate user" : "Activate user"
         }
         variant={statusUser?.isActive ? "destructive" : "default"}
         loading={updating}

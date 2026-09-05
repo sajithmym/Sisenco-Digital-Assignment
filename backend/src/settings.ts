@@ -160,7 +160,7 @@ export const USER_SETTINGS = {
 // Centralized so response copy can be kept consistent or later moved to i18n.
 export const API_RESPONSE_MESSAGES = {
   auth: {
-    registered: "Account registered successfully",
+    registered: "Account created. An administrator must activate it before sign-in.",
     loggedIn: "Logged in successfully",
     refreshed: "Tokens refreshed successfully",
     loggedOut: "Logged out successfully",

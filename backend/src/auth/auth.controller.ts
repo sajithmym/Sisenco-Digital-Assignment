@@ -26,13 +26,13 @@ export class AuthController {
 
   @Post('register')
   @Throttle({ default: { limit: AUTH_SETTINGS.authRateLimit.registrationAttempts, ttl: AUTH_SETTINGS.authRateLimit.ttlMilliseconds } })
-  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) response: Response) {
+  async register(@Body() dto: RegisterDto) {
     try {
       if (!AUTH_SETTINGS.allowSelfRegistration) {
         throw new ForbiddenException(AUTH_SETTINGS.messages.selfRegistrationDisabled);
       }
       const data = await this.authService.register(dto);
-      return ApiResponse.created(this.setRefreshCookie(response, data), API_RESPONSE_MESSAGES.auth.registered);
+      return ApiResponse.created(data, API_RESPONSE_MESSAGES.auth.registered);
     } catch (error) {
       // Rethrow — GlobalExceptionFilter formats and sends the actual error message.
       throw error;

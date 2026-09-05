@@ -45,12 +45,16 @@ export class AuthService {
           email: normalizedEmail,
           passwordHash,
           role: USER_SETTINGS.defaultRole,
+          // Self-registered accounts require an administrator's approval before
+          // they can obtain a session or access application data.
+          isActive: false,
         },
         select: {
           id: true,
           name: true,
           email: true,
           role: true,
+          isActive: true,
           createdAt: true,
         },
       });
@@ -67,13 +71,7 @@ export class AuthService {
       throw error;
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
-    await this.storeRefreshToken(user.id, tokens.refreshToken);
-
-    return {
-      user,
-      ...tokens,
-    };
+    return { user };
   }
 
   async login(email: string, password: string) {
@@ -89,7 +87,11 @@ export class AuthService {
     }
 
     if (!user.isActive) {
-      throw new ForbiddenException(AUTH_SETTINGS.messages.accountDeactivated);
+      // Keep login failures uniform so the endpoint does not disclose account
+      // state to someone who only knows an email address.
+      throw new UnauthorizedException(
+        AUTH_SETTINGS.messages.invalidCredentials,
+      );
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
@@ -109,6 +111,7 @@ export class AuthService {
         name: user.name,
         email: user.email,
         role: user.role,
+        isActive: user.isActive,
         createdAt: user.createdAt,
       },
       ...tokens,
