@@ -9,6 +9,7 @@ The identified application defects have been addressed and the automated checks 
 | Area | Result |
 |---|---|
 | Reproducible database setup | Added the initial SQL migration and Prisma migration lock file. Removed the migrations ignore rule, refreshed that path in the Git index, and staged both migration files for inclusion in the next commit. |
+| Missing local migration recovery | `db:init` regenerates the initial migration from the committed Prisma schema only when no migration directories exist, then asks for the regenerated files to be committed. It refuses to overwrite incomplete or existing migration directories. |
 | Existing database recovery | Added schema-checked baselining for existing matching tables, with explicit local-only replacement of missing migration history and a metadata backup. No application tables were reset. |
 | Draft privacy | Other members, managers, and admins cannot read another member's draft contents. Manager report lists and content aggregates exclude drafts; the submission roster exposes only status metadata. |
 | Workflow concurrency | Editing, submission, correction requests, and approval acquire the same PostgreSQL report row lock and recheck state inside the transaction. Reviews require and reference the submitted version. |
@@ -54,7 +55,7 @@ The root convenience commands `node docs/audit-probes.cjs` and `node docs/audit-
 
 The original database schema matched the new initial migration. Its unavailable old migration history was replaced by the verified baseline; the previous metadata is preserved locally at `tmp/migration-history-1788591627180.json` (ignored by Git). The legacy demo repair corrected reporting dates and version counters for 16 known seed reports while preserving their contents.
 
-After idempotent seeding, the local database contains six users and 20 reports: four Submitted, eight Approved, four Draft, and four Needs Correction. There are no version-counter mismatches. Additional historical examples provide full two-version correction histories without rewriting old submissions.
+On a fresh idempotent seed, the database contains six users and 16 reports: four each in Submitted, Approved, Draft, and Needs Correction. There are no version-counter mismatches. Existing databases can retain additional historical examples without rewriting old submissions.
 
 Demo admin: `admin@example.com`, password `password123`. These are local seed credentials. Existing user credentials were preserved, and `backend/.env` was not edited.
 

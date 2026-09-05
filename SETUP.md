@@ -116,6 +116,8 @@ This single command:
 
 > ℹ️ Alias of `npm run db:init`. Use `npm run db:reset` later if you want to wipe and re-seed.
 
+If seed reports `The table public.users does not exist`, do not run `npm run seed` by itself. Run `npm run db:init` so migrations are applied before seed data is inserted. If this development checkout has no migration directory, `db:init` regenerates the initial migration from `prisma/schema.prisma`; commit the regenerated `backend/prisma/migrations/` files so other devices receive the same history.
+
 ### 2.6 Start the backend
 
 ```bash

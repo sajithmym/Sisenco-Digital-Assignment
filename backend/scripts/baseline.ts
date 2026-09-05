@@ -26,10 +26,25 @@ export async function baselineExistingDatabase(replaceMissingHistory = false) {
     const names = tables.rows.map(
       (row: { table_name: string }) => row.table_name,
     );
-    if (!names.length) return;
     const history = names.includes("_prisma_migrations")
       ? (await client.query(`SELECT * FROM ${migrationTable}`)).rows
       : [];
+    const applicationTables = names.filter(
+      (name) => name !== "_prisma_migrations",
+    );
+    if (!applicationTables.length) {
+      if (
+        history.some(
+          (row) => row.finished_at && !row.rolled_back_at,
+        )
+      )
+        throw new Error(
+          "Migration history marks a migration as applied, but no application tables exist. Restore the database from backup or reset this empty local database before continuing.",
+        );
+      // Prisma may have created an empty migration metadata table before an
+      // interrupted first deployment. There is no schema to baseline yet.
+      return;
+    }
     if (
       history.some(
         (row) =>

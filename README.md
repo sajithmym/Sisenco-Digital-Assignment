@@ -141,6 +141,8 @@ npm run start:dev
 | `npm run seed` | Seed only (no schema changes) |
 | `npm run prisma:studio` | Open Prisma Studio GUI |
 
+If `npm run seed` reports that `public.users` does not exist, run `npm run db:init` instead. It applies migrations before seed data. If a local development checkout has no migrations, it regenerates the initial migration from `prisma/schema.prisma`; commit that `backend/prisma/migrations/` directory afterward.
+
 ### 4. Frontend setup
 
 ```bash
