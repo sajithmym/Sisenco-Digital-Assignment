@@ -18,6 +18,7 @@ interface DatePickerProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  id?: string;
 }
 
 export function DatePicker({
@@ -26,6 +27,7 @@ export function DatePicker({
   placeholder = "Pick a date",
   disabled = false,
   className,
+  id,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -55,6 +57,7 @@ export function DatePicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          id={id}
           variant="outline"
           className={cn(
             "h-11 w-full justify-start rounded-lg border-input bg-background px-3 text-left font-medium shadow-sm transition-all hover:border-primary/40 hover:bg-primary/[0.02] focus-visible:ring-primary/40",
@@ -62,7 +65,9 @@ export function DatePicker({
             className,
           )}
           disabled={disabled}
-          aria-label={selectedDate ? `Selected date: ${selectedLabel}` : placeholder}
+          aria-label={
+            selectedDate ? `Selected date: ${selectedLabel}` : placeholder
+          }
         >
           <span className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
             <CalendarDays className="h-4 w-4" />

@@ -95,6 +95,25 @@ describe("HTTP authorization, reports, and dashboard with an isolated PostgreSQL
     if (app) await app.close();
   });
 
+  it("returns 503 when the PostgreSQL health probe fails", async () => {
+    const probe = jest
+      .spyOn(prisma, "$queryRaw")
+      .mockRejectedValueOnce(new Error("connection lost"));
+
+    try {
+      const response = await request(http).get("/api/v1/health").expect(503);
+      expect(response.body).toMatchObject({
+        success: false,
+        statusCode: 503,
+        code: "SERVICE_UNAVAILABLE",
+        message: "Service is unhealthy",
+        data: null,
+      });
+    } finally {
+      probe.mockRestore();
+    }
+  });
+
   it("serves a healthy API through the production middleware configuration", async () => {
     const response = await request(http)
       .get("/api/v1/health")

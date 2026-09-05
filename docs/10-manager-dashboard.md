@@ -1,6 +1,6 @@
 # Manager dashboard
 
-Dashboard, roster, and team-report data requires `MANAGER` or `ADMIN`. Team members cannot call these endpoints. Backend queries exclude private drafts, so chart/report hiding in the interface is not relied upon as access control.
+Dashboard, roster, and team-report data requires `MANAGER` or `ADMIN`. Team members cannot call these endpoints. Manager dashboard analytics and team-report routes exclude private draft content and draft report IDs. The roster and summary may expose only draft status/count metadata for reporting compliance; interface hiding is not relied upon as access control.
 
 | View | Endpoint | Purpose |
 |---|---|---|

@@ -6,7 +6,7 @@ A member can create a private DRAFT, revisit it, change its content, and submit 
 
 ## Rules and boundaries
 
-Only the report author edits a DRAFT. The report must be unique for the member/week, and submission requires at least one completed task. Submission makes content visible to management but does not allow further draft edits.
+Only the report author edits a DRAFT. The report must be unique for the member/week, and submission requires at least one named task; it does not require a `DONE` status. Submission makes content visible to management but does not allow further draft edits.
 
 ## Verification
 

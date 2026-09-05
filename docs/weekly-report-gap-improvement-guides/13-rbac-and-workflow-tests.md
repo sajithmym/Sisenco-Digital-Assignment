@@ -10,7 +10,7 @@ The E2E runner uses a random migrated schema to protect development data. Tests 
 
 ## Verification
 
-Run npm test -- --runInBand and npm run test:e2e from backend, then npm test and npm run test:coverage from frontend. Current totals are 73, 13, and 63 respectively.
+Run npm test -- --runInBand and npm run test:e2e from backend, then npm test and npm run test:coverage from frontend. Current totals are 75, 14, and 64 respectively.
 
 ## Related guides
 

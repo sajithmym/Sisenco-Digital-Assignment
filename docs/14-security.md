@@ -12,4 +12,4 @@ Production startup rejects missing, short, duplicate, or development JWT secrets
 
 ## Authorization and abuse protection
 
-JWT, roles, ownership, visibility, and workflow state are enforced by the API. Private drafts are hidden from all management roles. The global throttle is 100 requests/minute, with auth overrides of registration 3/minute, login 5/minute, and refresh 20/minute. Production dependency audits currently find zero vulnerabilities in either application package.
+JWT, roles, ownership, visibility, and workflow state are enforced by the API. Private draft content and report IDs are hidden from all management roles; dashboard roster/summary output may expose only draft status/count metadata. The global throttle is 100 requests/minute, with auth overrides of registration 3/minute, login 5/minute, and refresh 20/minute. Production dependency audits currently find zero vulnerabilities in either application package.

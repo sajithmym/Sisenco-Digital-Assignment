@@ -6,7 +6,7 @@ Every submission stores a full immutable snapshot in `report_versions`: report c
 
 ## Rules and boundaries
 
-A later edit/resubmission creates a new version rather than overwriting a prior submission. Members view only their own history; manager visibility continues to exclude private drafts.
+A later edit/resubmission creates a new version rather than overwriting a prior submission. Members view only their own history; manager visibility continues to exclude private draft content and report IDs; dashboard status/count metadata is separate.
 
 ## Verification
 

@@ -29,16 +29,16 @@ The frontend redirects users to the appropriate role area for usability. The Nes
 
 ## Reporting workflow and data rules
 
-A report belongs to one team member and one Monday-to-Sunday UTC reporting week. The database enforces one report per member/week. The form supports an optional active project, completed tasks, next-week tasks, blockers, achievements, work hours, and notes.
+A report belongs to one team member and one Monday-to-Sunday UTC reporting week. The database enforces one report per member/week. The form supports an optional active project, task entries, next-week tasks, blockers, achievements, work hours, and notes.
 
 ```text
 DRAFT -> SUBMITTED -> APPROVED
                   \-> NEEDS_CORRECTION -> SUBMITTED
 ```
 
-Only the author may edit a `DRAFT` or `NEEDS_CORRECTION` report. Submission requires at least one completed task. A manager or admin may approve or request changes only while the report is `SUBMITTED`; change requests require a comment. Each submission creates an immutable full-content version snapshot, and reviews are linked to the version they acted on.
+Only the author may edit a `DRAFT` or `NEEDS_CORRECTION` report. Submission requires at least one named task; task status does not need to be `DONE`. A manager or admin may approve or request changes only while the report is `SUBMITTED`; change requests require a comment. Each submission creates an immutable full-content version snapshot, and reviews are linked to the version they acted on.
 
-Dashboard reporting uses Monday-Sunday UTC weeks. Compliance counts member-weeks that have been submitted at least once; approval and correction do not remove that credit. `PENDING` means no report has been submitted for the selected week; `LATE` includes overdue missing reports and reports first submitted after the Sunday 23:59:59 UTC deadline.
+Dashboard reporting uses Monday-Sunday UTC weeks. Managers and administrators may see draft status/count metadata for compliance, but never draft content or private draft report IDs. Compliance counts member-weeks that have been submitted at least once; approval and correction do not remove that credit. `PENDING` means no report has been submitted for the selected week; `LATE` includes overdue missing reports and reports first submitted after the Sunday 23:59:59 UTC deadline.
 
 ## API
 
@@ -46,7 +46,7 @@ All API responses use `{ success, statusCode, message, data, timestamp, code? }`
 
 | Area | Routes |
 |---|---|
-| Health | `GET /api/v1/health` |
+| Health | `GET /api/v1/health` (returns `503 SERVICE_UNAVAILABLE` if PostgreSQL is unavailable) |
 | Authentication | `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me` |
 | Member reports | `POST /api/v1/reports`, `GET /api/v1/reports/my`, `GET /api/v1/reports/my/summary`, `GET /api/v1/reports/:id`, `PATCH /api/v1/reports/:id`, `POST /api/v1/reports/:id/submit`, `GET /api/v1/reports/:id/versions` |
 | Manager reports | `GET /api/v1/manager/reports`, `GET /api/v1/manager/reports/:id`, `POST /api/v1/manager/reports/:id/request-changes`, `POST /api/v1/manager/reports/:id/approve` |
@@ -98,9 +98,9 @@ Latest verified automated counts:
 
 | Suite | Command | Result |
 |---|---|---|
-| Backend unit | `cd backend; npm test -- --runInBand` | 73 tests, 14 suites |
-| Backend HTTP/PostgreSQL E2E | `cd backend; npm run test:e2e` | 13 tests in an isolated temporary PostgreSQL schema |
-| Frontend unit/component | `cd frontend; npm test` | 63 tests, 14 files |
+| Backend unit | `cd backend; npm test -- --runInBand` | 75 tests, 14 suites |
+| Backend HTTP/PostgreSQL E2E | `cd backend; npm run test:e2e` | 14 tests in an isolated temporary PostgreSQL schema |
+| Frontend unit/component | `cd frontend; npm test` | 64 tests, 14 files |
 
 The E2E runner requires a locally accessible PostgreSQL server. It creates a random `test_assignment_*` schema, applies the committed migration, runs HTTP workflow/RBAC/security/seed checks, and removes only that schema afterward.
 

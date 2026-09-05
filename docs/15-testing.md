@@ -4,10 +4,10 @@
 
 | Area | Command | Current result |
 |---|---|---|
-| Backend unit | `cd backend; npm test -- --runInBand` | 73 tests, 14 suites |
-| Backend E2E | `cd backend; npm run test:e2e` | 13 HTTP/PostgreSQL tests |
-| Frontend unit/component | `cd frontend; npm test` | 63 tests, 14 files |
-| Frontend coverage | `cd frontend; npm run test:coverage` | Passing; 38.49% overall statement coverage |
+| Backend unit | `cd backend; npm test -- --runInBand` | 75 tests, 14 suites |
+| Backend E2E | `cd backend; npm run test:e2e` | 14 HTTP/PostgreSQL tests |
+| Frontend unit/component | `cd frontend; npm test` | 64 tests, 14 files |
+| Frontend coverage | `cd frontend; npm run test:coverage` | Passing; 38.72% overall statement coverage |
 
 Backend unit coverage includes auth/token behavior, guards, response/error handling, reports/workflow validation, projects, users, dashboard calculations, and health behavior. The E2E runner creates a random `test_assignment_*` PostgreSQL schema, applies the committed migration, tests RBAC/security/workflow/seed behavior, then removes only that schema.
 

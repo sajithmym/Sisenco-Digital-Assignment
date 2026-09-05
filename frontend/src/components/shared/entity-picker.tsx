@@ -21,6 +21,7 @@ export function EntityPicker({
   selectedLabel,
   includeArchived = false,
   emptyLabel,
+  id: controlId,
 }: {
   kind: "project" | "member";
   value: string;
@@ -28,6 +29,7 @@ export function EntityPicker({
   selectedLabel?: string;
   includeArchived?: boolean;
   emptyLabel: string;
+  id?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -69,6 +71,7 @@ export function EntityPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          id={controlId}
           type="button"
           variant="outline"
           className="h-11 w-full justify-between rounded-lg border-input bg-background px-3 text-left font-medium shadow-sm transition-all hover:border-primary/40 hover:bg-primary/[0.02] focus-visible:ring-primary/40"

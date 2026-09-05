@@ -2,11 +2,11 @@
 
 ## Implemented behavior
 
-The member form uses React Hook Form and Zod to collect reporting week, optional project, completed tasks, next-week tasks, blockers, achievements, work-hour rows, and notes. Dynamic collections can be added/removed, and project selection is normalized before API submission.
+The member form uses React Hook Form and Zod to collect reporting week, optional project, task entries, next-week tasks, blockers, achievements, work-hour rows, and notes. Dynamic collections can be added/removed, and project selection is normalized before API submission.
 
 ## Rules and boundaries
 
-The backend determines the Monday UTC week and uniqueness; the browser timezone is only for display/selection. A report may draft with empty collections, but submission needs at least one completed task. Only active projects are selectable.
+The backend determines the Monday UTC week and uniqueness; the browser timezone is only for display/selection. A report may draft with empty collections, but submission needs at least one named task; it does not require a `DONE` status. Only active projects are selectable.
 
 ## Verification
 

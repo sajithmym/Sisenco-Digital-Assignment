@@ -6,7 +6,7 @@ This implementation guide describes the current feature, the code boundary that 
 
 ## Current implementation
 
-A normalized Monday UTC week identifies a report. Content includes work, planned work, blockers, achievements, hours, notes, and an optional active project. Submission requires completed work.
+A normalized Monday UTC week identifies a report. Content includes work, planned work, blockers, achievements, hours, notes, and an optional active project. Submission requires at least one named task; it does not require a `DONE` status.
 
 ## Verify
 

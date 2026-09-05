@@ -10,7 +10,7 @@ Controllers accept validated DTOs and delegate business decisions to feature ser
 
 | Group | Base route | Access |
 |---|---|---|
-| Health | `/health` | Public |
+| Health | `/health` | Public; returns `503 SERVICE_UNAVAILABLE` when PostgreSQL is unavailable |
 | Auth | `/auth` | Public/protected by action |
 | Member reports | `/reports` | Authenticated member owns record |
 | Manager reports/dashboard | `/manager/*` | MANAGER, ADMIN |

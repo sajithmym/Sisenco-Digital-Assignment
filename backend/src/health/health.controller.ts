@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ApiResponse } from '../common/dto';
 
@@ -17,15 +17,8 @@ export class HealthController {
         },
         'Service is healthy',
       );
-    } catch (error) {
-      // Health checks report degraded state instead of throwing.
-      return ApiResponse.success(
-        {
-          status: 'error',
-          database: 'disconnected',
-        },
-        'Service is unhealthy',
-      );
+    } catch {
+      throw new ServiceUnavailableException('Service is unhealthy');
     }
   }
 }

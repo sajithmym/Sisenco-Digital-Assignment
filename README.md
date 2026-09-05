@@ -72,7 +72,7 @@ npm test
 npm run build
 ```
 
-The latest verified suites contain 73 backend unit tests, 13 backend HTTP/PostgreSQL E2E tests, and 63 frontend unit/component tests.
+The latest verified suites contain 75 backend unit tests, 14 backend HTTP/PostgreSQL E2E tests, and 64 frontend unit/component tests.
 
 ## Documentation
 

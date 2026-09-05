@@ -6,7 +6,7 @@ This implementation guide describes the current feature, the code boundary that 
 
 ## Current implementation
 
-Managers/admins use server-filtered roster, summary, status, trend, workload, time, and activity endpoints. Metrics use UTC reporting weeks and exclude private draft content.
+Managers/admins use server-filtered roster, summary, status, trend, workload, time, and activity endpoints. Metrics use UTC reporting weeks and exclude private draft content and report IDs; roster/summary may show draft status/count metadata.
 
 ## Verify
 

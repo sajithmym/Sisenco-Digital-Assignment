@@ -39,6 +39,7 @@ The backend listens on `http://localhost:5000`; verify it with:
 
 ```bash
 curl http://localhost:5000/api/v1/health
+# Returns HTTP 200 when PostgreSQL is connected, or 503 when it is unavailable.
 ```
 
 ## 3. Configure and start the frontend

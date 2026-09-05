@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useId } from "react";
+import { useEffect, useState } from "react";
 import {
   useFieldArray,
   useForm,
@@ -97,8 +97,13 @@ export function WeeklyReportForm({
           <CardTitle>Week information</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
-          <Field label="Project" error={errors.projectId?.message}>
+          <Field
+            label="Project"
+            controlId="report-project"
+            error={errors.projectId?.message}
+          >
             <EntityPicker
+              id="report-project"
               kind="project"
               value={values.projectId || ""}
               selectedLabel={initialReport?.project?.name}
@@ -108,8 +113,13 @@ export function WeeklyReportForm({
               }
             />
           </Field>
-          <Field label="Week start" error={errors.weekStart?.message}>
+          <Field
+            label="Week start"
+            controlId="report-week-start"
+            error={errors.weekStart?.message}
+          >
             <DatePicker
+              id="report-week-start"
               value={values.weekStart}
               onChange={(date) => {
                 if (date) {
@@ -123,12 +133,12 @@ export function WeeklyReportForm({
               placeholder="Select start date"
             />
           </Field>
-          <Field label="Week end" error={errors.weekEnd?.message}>
-            <Input
-              value={values.weekEnd || ""}
-              readOnly
-              aria-label="Week end (Sunday)"
-            />
+          <Field
+            label="Week end"
+            controlId="report-week-end"
+            error={errors.weekEnd?.message}
+          >
+            <Input id="report-week-end" value={values.weekEnd || ""} readOnly />
           </Field>
         </CardContent>
       </Card>
@@ -160,14 +170,20 @@ export function WeeklyReportForm({
               <Field
                 className="md:col-span-4"
                 label="Task"
+                controlId={`task-${field.id}-name`}
                 error={errors.tasks?.[index]?.taskName?.message}
               >
                 <Input
+                  id={`task-${field.id}-name`}
                   {...register(`tasks.${index}.taskName`)}
                   placeholder="Task name"
                 />
               </Field>
-              <Field className="md:col-span-2" label="Priority">
+              <Field
+                className="md:col-span-2"
+                label="Priority"
+                controlId={`task-${field.id}-priority`}
+              >
                 <Select
                   value={
                     values.tasks?.[index]?.priority ??
@@ -180,7 +196,7 @@ export function WeeklyReportForm({
                     )
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id={`task-${field.id}-priority`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -192,7 +208,11 @@ export function WeeklyReportForm({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field className="md:col-span-2" label="Status">
+              <Field
+                className="md:col-span-2"
+                label="Status"
+                controlId={`task-${field.id}-status`}
+              >
                 <Select
                   value={
                     values.tasks?.[index]?.status ??
@@ -205,7 +225,7 @@ export function WeeklyReportForm({
                     )
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id={`task-${field.id}-status`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -224,6 +244,7 @@ export function WeeklyReportForm({
               <NumberField
                 className="md:col-span-2"
                 label="Planned %"
+                controlId={`task-${field.id}-planned-percentage`}
                 error={errors.tasks?.[index]?.plannedPercentage?.message}
                 input={register(`tasks.${index}.plannedPercentage`, {
                   valueAsNumber: true,
@@ -234,6 +255,7 @@ export function WeeklyReportForm({
               <NumberField
                 className="md:col-span-2"
                 label="Actual %"
+                controlId={`task-${field.id}-actual-percentage`}
                 error={errors.tasks?.[index]?.actualPercentage?.message}
                 input={register(`tasks.${index}.actualPercentage`, {
                   valueAsNumber: true,
@@ -244,6 +266,7 @@ export function WeeklyReportForm({
               <NumberField
                 className="md:col-span-2"
                 label="Planned minutes"
+                controlId={`task-${field.id}-planned-minutes`}
                 error={errors.tasks?.[index]?.plannedMinutes?.message}
                 input={register(`tasks.${index}.plannedMinutes`, {
                   valueAsNumber: true,
@@ -252,6 +275,7 @@ export function WeeklyReportForm({
               <NumberField
                 className="md:col-span-2"
                 label="Actual minutes"
+                controlId={`task-${field.id}-actual-minutes`}
                 error={errors.tasks?.[index]?.actualMinutes?.message}
                 input={register(`tasks.${index}.actualMinutes`, {
                   valueAsNumber: true,
@@ -260,9 +284,11 @@ export function WeeklyReportForm({
               <Field
                 className="md:col-span-4"
                 label="Deliverable"
+                controlId={`task-${field.id}-deliverable`}
                 error={errors.tasks?.[index]?.deliverable?.message}
               >
                 <Input
+                  id={`task-${field.id}-deliverable`}
                   {...register(`tasks.${index}.deliverable`)}
                   placeholder="Link, artefact, or outcome"
                 />
@@ -289,9 +315,11 @@ export function WeeklyReportForm({
               <Field
                 className="flex-1"
                 label={`Task ${index + 1}`}
+                controlId={`next-week-task-${field.id}`}
                 error={errors.nextWeekTasks?.[index]?.description?.message}
               >
                 <Input
+                  id={`next-week-task-${field.id}`}
                   {...register(`nextWeekTasks.${index}.description`)}
                   placeholder="Planned task"
                 />
@@ -329,9 +357,11 @@ export function WeeklyReportForm({
                   <Field
                     className="flex-1"
                     label="Blocker"
+                    controlId={`blocker-${field.id}`}
                     error={errors.blockers?.[index]?.description?.message}
                   >
                     <Input
+                      id={`blocker-${field.id}`}
                       {...register(`blockers.${index}.description`)}
                       placeholder="Describe the blocker"
                     />
@@ -391,9 +421,11 @@ export function WeeklyReportForm({
                   <Field
                     className="flex-1"
                     label="Achievement"
+                    controlId={`achievement-${field.id}`}
                     error={errors.achievements?.[index]?.description?.message}
                   >
                     <Input
+                      id={`achievement-${field.id}`}
                       {...register(`achievements.${index}.description`)}
                       placeholder="Describe the achievement"
                     />
@@ -442,7 +474,10 @@ export function WeeklyReportForm({
               key={field.id}
               className="grid gap-3 sm:grid-cols-[1fr_180px_auto]"
             >
-              <Field label="Category">
+              <Field
+                label="Category"
+                controlId={`work-hour-${field.id}-category`}
+              >
                 <Select
                   value={
                     values.workHours?.[index]?.type ??
@@ -455,7 +490,7 @@ export function WeeklyReportForm({
                     )
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id={`work-hour-${field.id}-category`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -469,6 +504,7 @@ export function WeeklyReportForm({
               </Field>
               <NumberField
                 label="Minutes"
+                controlId={`work-hour-${field.id}-minutes`}
                 error={errors.workHours?.[index]?.minutes?.message}
                 input={register(`workHours.${index}.minutes`, {
                   valueAsNumber: true,
@@ -488,10 +524,12 @@ export function WeeklyReportForm({
           <CardTitle>Notes and links</CardTitle>
         </CardHeader>
         <CardContent>
+          <Label htmlFor="report-notes">Notes and links</Label>
           <Textarea
+            id="report-notes"
             {...register("notes")}
             placeholder="Add context, decisions, risks, or relevant links."
-            className="min-h-32"
+            className="mt-2 min-h-32"
           />
           {errors.notes && (
             <p className="mt-2 text-sm text-destructive">
@@ -502,8 +540,9 @@ export function WeeklyReportForm({
       </Card>
       {Object.keys(errors).length > 0 && (
         <p role="alert" className="text-sm text-destructive">
-          Check the highlighted fields. Each section allows at most {REPORT_SETTINGS.maxItemsPerSection} items;
-          percentages and minutes must be whole numbers.
+          Check the highlighted fields. Each section allows at most{" "}
+          {REPORT_SETTINGS.maxItemsPerSection} items; percentages and minutes
+          must be whole numbers.
         </p>
       )}
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -578,20 +617,17 @@ function Field({
   error,
   className,
   children,
+  controlId,
 }: {
   label: string;
   error?: string;
   className?: string;
   children: React.ReactNode;
+  controlId?: string;
 }) {
-  const id = useId();
   return (
-    <div
-      role="group"
-      aria-labelledby={id}
-      className={`space-y-2 ${className || ""}`}
-    >
-      <Label id={id}>{label}</Label>
+    <div className={`space-y-2 ${className || ""}`}>
+      <Label htmlFor={controlId}>{label}</Label>
       {children}
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
@@ -604,6 +640,7 @@ function NumberField({
   min,
   max,
   className,
+  controlId,
 }: {
   label: string;
   error?: string;
@@ -611,10 +648,17 @@ function NumberField({
   min?: number;
   max?: number;
   className?: string;
+  controlId?: string;
 }) {
   return (
-    <Field label={label} error={error} className={className}>
+    <Field
+      label={label}
+      error={error}
+      className={className}
+      controlId={controlId}
+    >
       <Input
+        id={controlId}
         type="number"
         min={min ?? VALIDATION_SETTINGS.minutes.min}
         max={max ?? VALIDATION_SETTINGS.minutes.max}

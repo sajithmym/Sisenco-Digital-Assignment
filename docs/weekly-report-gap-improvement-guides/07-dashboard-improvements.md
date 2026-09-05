@@ -6,7 +6,7 @@ Dashboard API exposes roster, summary, status distribution, task trends, project
 
 ## Rules and boundaries
 
-Analytics are limited to MANAGER/ADMIN and exclude drafts. Weekly calculations use Monday-Sunday UTC. Query filters must not allow arbitrary/unbounded input.
+Analytics are limited to MANAGER/ADMIN. Charts, team reports, and activity exclude private draft content and draft report IDs, while roster and summary may show draft status/count metadata for reporting compliance. Weekly calculations use Monday-Sunday UTC. Query filters must not allow arbitrary/unbounded input.
 
 ## Verification
 

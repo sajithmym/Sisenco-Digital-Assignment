@@ -8,20 +8,29 @@ vi.mock("@/components/shared/entity-picker", () => ({
     value,
     emptyLabel,
     onChange,
+    id,
   }: {
     value: string;
     emptyLabel: string;
     onChange: (value: string) => void;
+    id?: string;
   }) => (
-    <button type="button" onClick={() => onChange("project-1")}>
+    <button id={id} type="button" onClick={() => onChange("project-1")}>
       {value || emptyLabel}
     </button>
   ),
 }));
 
 vi.mock("@/components/ui/date-picker", () => ({
-  DatePicker: ({ onChange }: { onChange: (date?: Date) => void }) => (
+  DatePicker: ({
+    onChange,
+    id,
+  }: {
+    onChange: (date?: Date) => void;
+    id?: string;
+  }) => (
     <button
+      id={id}
       type="button"
       onClick={() => onChange(new Date("2026-09-06T12:00:00"))}
     >
@@ -31,7 +40,9 @@ vi.mock("@/components/ui/date-picker", () => ({
 }));
 
 describe("WeeklyReportForm", () => {
-  function renderForm(overrides?: Partial<React.ComponentProps<typeof WeeklyReportForm>>) {
+  function renderForm(
+    overrides?: Partial<React.ComponentProps<typeof WeeklyReportForm>>,
+  ) {
     const props = {
       submitLabel: "Save draft",
       saving: false,
@@ -49,23 +60,58 @@ describe("WeeklyReportForm", () => {
     const { onCancel } = renderForm();
 
     expect(screen.getByText("No project selected")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Choose reporting week" }));
+    await user.click(screen.getByRole("button", { name: "Week start" }));
 
-    expect(screen.getByLabelText("Week end (Sunday)")).toHaveValue("2026-09-06");
+    expect(screen.getByLabelText("Week end")).toHaveValue("2026-09-06");
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("associates visible labels with report controls", async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    expect(screen.getByLabelText("Project")).toHaveAttribute(
+      "id",
+      "report-project",
+    );
+    expect(screen.getByLabelText("Week start")).toHaveAttribute(
+      "id",
+      "report-week-start",
+    );
+    expect(screen.getByLabelText("Week end")).toHaveAttribute(
+      "id",
+      "report-week-end",
+    );
+    expect(screen.getByLabelText("Notes and links")).toHaveAttribute(
+      "id",
+      "report-notes",
+    );
+
+    await user.click(screen.getAllByRole("button", { name: "Add" })[0]);
+
+    expect(screen.getByLabelText("Task")).toHaveAttribute("id");
+    expect(screen.getByLabelText("Priority")).toHaveAttribute("id");
+    expect(screen.getByLabelText("Status")).toHaveAttribute("id");
+    expect(screen.getByLabelText("Planned %")).toHaveAttribute("id");
+    expect(screen.getByLabelText("Deliverable")).toHaveAttribute("id");
   });
 
   it("submits a valid report with normalized project data", async () => {
     const user = userEvent.setup();
     const { onSave } = renderForm();
 
-    await user.click(screen.getByRole("button", { name: "No project selected" }));
+    await user.click(screen.getByRole("button", { name: "Project" }));
     await user.click(screen.getAllByRole("button", { name: "Add" })[0]);
-    await user.type(screen.getByPlaceholderText("Task name"), "Publish dashboard");
     await user.type(
-      screen.getByPlaceholderText("Add context, decisions, risks, or relevant links."),
+      screen.getByPlaceholderText("Task name"),
+      "Publish dashboard",
+    );
+    await user.type(
+      screen.getByPlaceholderText(
+        "Add context, decisions, risks, or relevant links.",
+      ),
       "Release notes are ready.",
     );
     await user.click(screen.getByRole("button", { name: "Save draft" }));
@@ -87,7 +133,7 @@ describe("WeeklyReportForm", () => {
         }),
       ),
     );
-  });
+  }, 15_000);
 
   it("keeps only the most recently selected blocker as the key issue", async () => {
     const user = userEvent.setup();

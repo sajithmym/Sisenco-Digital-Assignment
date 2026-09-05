@@ -10,7 +10,7 @@ Jest unit tests cover services/guards/workflow, Supertest E2E validates HTTP beh
 
 ## Verify
 
-Run build, lint, Prisma checks, 73 backend unit tests, 13 E2E tests, and 63 frontend tests before sign-off.
+Run build, lint, Prisma checks, 75 backend unit tests, 14 E2E tests, and 64 frontend tests before sign-off.
 
 ## Related documentation
 

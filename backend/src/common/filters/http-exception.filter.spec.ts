@@ -1,4 +1,4 @@
-import { BadRequestException, Logger } from "@nestjs/common";
+import { BadRequestException, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { GlobalExceptionFilter } from "./http-exception.filter";
 
@@ -33,6 +33,24 @@ describe("GlobalExceptionFilter", () => {
         code: "BAD_REQUEST",
         message: "name must be longer, email must be an email",
         data: null,
+      }),
+    );
+  });
+
+  it("preserves service-unavailable status in the standard error envelope", () => {
+    const { host, response } = createHost();
+    new GlobalExceptionFilter().catch(
+      new ServiceUnavailableException("Service is unhealthy"),
+      host as never,
+    );
+
+    expect(response.status).toHaveBeenCalledWith(503);
+    expect(response.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: false,
+        statusCode: 503,
+        code: "SERVICE_UNAVAILABLE",
+        message: "Service is unhealthy",
       }),
     );
   });
