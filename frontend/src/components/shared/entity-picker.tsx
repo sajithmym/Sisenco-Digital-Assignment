@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useId, useState } from "react";
+import { Check, ChevronDown, Search } from "lucide-react";
 import { projectsApi } from "@/services/projects.api";
 import { usersApi } from "@/services/users.api";
 import { useResource } from "@/lib/use-resource";
@@ -69,40 +70,52 @@ export function EntityPicker({
         <Button
           type="button"
           variant="outline"
-          className="w-full justify-start overflow-hidden text-ellipsis"
+          className="h-11 w-full justify-between rounded-lg border-input bg-background px-3 text-left font-medium shadow-sm transition-all hover:border-primary/40 hover:bg-primary/[0.02] focus-visible:ring-primary/40"
           aria-label={`Select ${kind}`}
         >
-          {value
-            ? selected?.id === value
-              ? selected.name
-              : selectedLabel || `Selected ${kind}`
-            : emptyLabel}
+          <span className="min-w-0 truncate">
+            {value
+              ? selected?.id === value
+                ? selected.name
+                : selectedLabel || `Selected ${kind}`
+              : emptyLabel}
+          </span>
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-80 max-w-[calc(100vw-2rem)] space-y-3"
+        className="w-80 max-w-[calc(100vw-2rem)] rounded-xl border-border/80 p-1.5 shadow-xl shadow-slate-950/10"
         align="start"
+        sideOffset={8}
+        collisionPadding={16}
       >
-        <label htmlFor={id} className="text-sm font-medium">
-          Search {kind === "project" ? "projects" : "members"}
-        </label>
-        <Input
-          id={id}
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            setPage(1);
-          }}
-          placeholder="Search by name"
-        />
-        <div className="max-h-64 space-y-1 overflow-auto">
+        <div className="space-y-2 border-b border-border/70 p-2 pb-3">
+          <label htmlFor={id} className="text-sm font-semibold">
+            Search {kind === "project" ? "projects" : "members"}
+          </label>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id={id}
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+              className="h-10 rounded-lg pl-9 focus-visible:ring-primary/40"
+              placeholder="Search by name"
+            />
+          </div>
+        </div>
+        <div className="max-h-64 space-y-1 overflow-auto p-1">
           <Button
             type="button"
             variant="ghost"
-            className="w-full justify-start"
+            className="h-10 w-full justify-between rounded-lg px-3 text-left hover:bg-primary/10 hover:text-primary"
             onClick={() => choose()}
           >
-            {emptyLabel}
+            <span>{emptyLabel}</span>
+            {!value && <Check className="h-4 w-4 text-primary" />}
           </Button>
           {loading ? (
             <p className="p-2 text-sm">Loading…</p>
@@ -118,18 +131,29 @@ export function EntityPicker({
               <Button
                 key={option.id}
                 type="button"
-                variant={value === option.id ? "secondary" : "ghost"}
-                className="w-full justify-start"
+                variant="ghost"
+                className={`h-10 w-full justify-between rounded-lg px-3 text-left hover:bg-primary/10 hover:text-primary ${
+                  value === option.id
+                    ? "bg-primary/10 font-medium text-primary"
+                    : ""
+                }`}
                 onClick={() => choose(option)}
               >
-                {option.name}
+                <span className="truncate">{option.name}</span>
+                {value === option.id && (
+                  <Check className="ml-2 h-4 w-4 shrink-0" />
+                )}
               </Button>
             ))
           ) : (
             <p className="p-2 text-sm">No matches.</p>
           )}
         </div>
-        {data && <Pagination meta={data.meta} onPage={setPage} />}
+        {data && (
+          <div className="border-t border-border/70 p-2 pt-3">
+            <Pagination meta={data.meta} onPage={setPage} />
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );

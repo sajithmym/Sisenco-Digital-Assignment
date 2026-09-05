@@ -2,6 +2,12 @@
 
 import * as React from "react";
 import { DayPicker, getDefaultClassNames } from "react-day-picker";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
@@ -17,33 +23,74 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
+      fixedWeeks
+      className={cn("w-full p-2", className)}
       classNames={{
         ...defaultClassNames,
-        root: cn(defaultClassNames.root, "w-fit"),
+        root: cn(defaultClassNames.root, "relative w-full"),
+        months: cn(defaultClassNames.months, "w-full"),
+        month: cn(defaultClassNames.month, "w-full space-y-2"),
         month_caption: cn(
           defaultClassNames.month_caption,
-          "flex justify-center pt-1 relative items-center mx-auto"
+          "flex h-10 items-center justify-center px-10"
         ),
-        nav: cn(defaultClassNames.nav, "space-x-1 flex items-center absolute inset-x-0 top-0 justify-between"),
+        caption_label: cn(
+          defaultClassNames.caption_label,
+          "text-sm font-semibold tracking-tight text-foreground"
+        ),
+        nav: cn(
+          defaultClassNames.nav,
+          "absolute inset-x-0 top-1 flex h-8 items-center justify-between px-1"
+        ),
         button_previous: cn(
           defaultClassNames.button_previous,
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute left-1"
+          "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         ),
         button_next: cn(
           defaultClassNames.button_next,
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute right-1"
+          "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        ),
+        month_grid: cn(defaultClassNames.month_grid, "w-full border-collapse"),
+        weekdays: cn(defaultClassNames.weekdays, "border-b border-border/70"),
+        weekday: cn(
+          defaultClassNames.weekday,
+          "h-9 w-10 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground"
+        ),
+        week: cn(defaultClassNames.week, "mt-1"),
+        day: cn(
+          defaultClassNames.day,
+          "h-10 w-10 p-0 text-center text-sm"
         ),
         day_button: cn(
           defaultClassNames.day_button,
-          "h-8 w-8 p-0 font-normal"
+          "mx-auto flex h-9 w-9 items-center justify-center rounded-lg font-medium text-foreground transition-all hover:bg-accent hover:text-accent-foreground focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         ),
-        selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        today: "bg-accent text-accent-foreground",
-        outside: "text-muted-foreground opacity-50",
-        disabled: "text-muted-foreground opacity-50",
-        range_middle: "bg-accent text-accent-foreground",
+        selected:
+          "[&>button]:bg-primary [&>button]:font-semibold [&>button]:text-primary-foreground [&>button]:shadow-sm [&>button]:hover:bg-primary/90 [&>button]:hover:text-primary-foreground",
+        today:
+          "[&>button]:border [&>button]:border-primary/35 [&>button]:bg-primary/10 [&>button]:font-semibold [&>button]:text-primary",
+        outside: "[&>button]:text-muted-foreground/45",
+        disabled: "[&>button]:cursor-not-allowed [&>button]:text-muted-foreground/35",
+        range_middle: "[&>button]:rounded-none [&>button]:bg-accent",
         ...classNames,
+      }}
+      components={{
+        Chevron: ({ orientation, className: chevronClassName }) => {
+          const Icon =
+            orientation === "right"
+              ? ChevronRight
+              : orientation === "up"
+                ? ChevronUp
+                : orientation === "down"
+                  ? ChevronDown
+                  : ChevronLeft;
+          return (
+            <Icon
+              aria-hidden="true"
+              className={cn("h-4 w-4", chevronClassName)}
+            />
+          );
+        },
       }}
       {...props}
     />
