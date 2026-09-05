@@ -1,20 +1,20 @@
 import { IsOptional, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PAGINATION_CONSTANTS } from '../constants';
+import { PAGINATION_SETTINGS } from '../../settings';
 
 export class PaginationDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
-  page: number = PAGINATION_CONSTANTS.DEFAULT_PAGE;
+  @Min(PAGINATION_SETTINGS.defaultPage)
+  page: number = PAGINATION_SETTINGS.defaultPage;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
-  @Max(PAGINATION_CONSTANTS.MAX_LIMIT)
-  limit: number = PAGINATION_CONSTANTS.DEFAULT_LIMIT;
+  @Min(PAGINATION_SETTINGS.defaultPage)
+  @Max(PAGINATION_SETTINGS.maxLimit)
+  limit: number = PAGINATION_SETTINGS.defaultLimit;
 }
 
 export class PaginatedResponse<T> {

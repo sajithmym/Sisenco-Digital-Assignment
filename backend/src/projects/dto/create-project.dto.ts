@@ -1,13 +1,14 @@
 import { IsString, IsOptional, MinLength, MaxLength } from 'class-validator';
+import { VALIDATION_SETTINGS } from '../../settings';
 
 export class CreateProjectDto {
   @IsString()
-  @MinLength(2)
-  @MaxLength(200)
+  @MinLength(VALIDATION_SETTINGS.projectName.min)
+  @MaxLength(VALIDATION_SETTINGS.projectName.max)
   name: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(1000)
+  @MaxLength(VALIDATION_SETTINGS.projectDescription.max)
   description?: string;
 }

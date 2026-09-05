@@ -8,22 +8,23 @@ import {
   MinLength,
 } from "class-validator";
 import { UserRole } from "../../common/enums";
+import { VALIDATION_SETTINGS } from "../../settings";
 
 export class CreateUserDto {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === "string" ? value.trim() : value,
   )
   @IsString()
-  @MinLength(2)
-  @MaxLength(100)
+  @MinLength(VALIDATION_SETTINGS.name.min)
+  @MaxLength(VALIDATION_SETTINGS.name.max)
   name: string;
 
   @IsEmail()
   email: string;
 
   @IsString()
-  @MinLength(8)
-  @MaxLength(128)
+  @MinLength(VALIDATION_SETTINGS.password.min)
+  @MaxLength(VALIDATION_SETTINGS.password.max)
   password: string;
 
   @IsOptional()

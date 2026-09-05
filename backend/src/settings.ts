@@ -24,6 +24,7 @@ const DB_PASSWORD = process.env.DB_PASSWORD || "postgres";
 const DB_NAME = process.env.DB_NAME || "weekly_report_db";
 const NODE_ENV = process.env.NODE_ENV || "development";
 const IS_PRODUCTION = NODE_ENV === "production";
+const SERVER_PORT = parseInt(process.env.PORT || "5000", 10);
 const COOKIE_SAME_SITE =
   process.env.AUTH_COOKIE_SAME_SITE || (IS_PRODUCTION ? "none" : "lax");
 
@@ -61,10 +62,19 @@ process.env.DATABASE_URL = DB_SETTINGS.url;
 
 // ─── Server ─────────────────────────────────────────────────
 export const SERVER_SETTINGS = {
-  port: parseInt(process.env.PORT || "5000", 10),
+  port: SERVER_PORT,
+  publicUrl: process.env.PUBLIC_API_URL || `http://localhost:${SERVER_PORT}`,
   frontendUrl: process.env.FRONTEND_URL || "http://localhost:3000",
   apiPrefix: "api/v1",
   nodeEnv: NODE_ENV,
+  cors: {
+    methods: ["GET", "POST", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  },
+  apiRateLimit: {
+    ttlMilliseconds: 60_000,
+    maxRequests: 100,
+  },
 } as const;
 
 // ─── JWT / Auth ─────────────────────────────────────────────
@@ -115,14 +125,50 @@ export const AUTH_SETTINGS = {
 export const REPORT_SETTINGS = {
   defaultTaskPriority: "MEDIUM",
   defaultTaskStatus: "TODO",
+  defaultNumericValue: 0,
+  defaultSortOrder: 0,
   maxItemsPerSection: 50,
   minTasksForSubmission: 1,
+  taskPriorities: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+  taskStatuses: ["TODO", "IN_PROGRESS", "DONE", "BLOCKED"],
+  workHourTypes: [
+    "DEVELOPMENT",
+    "TESTING",
+    "MEETINGS",
+    "DOCUMENTATION",
+    "OTHER",
+  ],
+  rosterStatuses: [
+    "DRAFT",
+    "SUBMITTED",
+    "NEEDS_CORRECTION",
+    "APPROVED",
+    "NOT_STARTED",
+    "LATE",
+    "PENDING",
+  ],
+  rosterStates: {
+    notStarted: "NOT_STARTED",
+    late: "LATE",
+    pending: "PENDING",
+  },
+  calendar: {
+    millisecondsPerDay: 86_400_000,
+    daysPerWeek: 7,
+    finalDayOffset: 6,
+    maxSelectableWeeks: 52,
+  },
   editableStatuses: [
     ReportStatus.DRAFT,
     ReportStatus.NEEDS_CORRECTION,
   ] as const,
   messages: {
     invalidWeekRange: "Week end must be after or equal to week start",
+    invalidReportingDate: "Invalid reporting date.",
+    invalidReportingWeek:
+      "Reports must cover Monday through Sunday using date-only values.",
+    reportingRangeTooLarge:
+      "Choose an ordered reporting range of at most 52 weeks.",
     projectNotFound: "Project not found",
     inactiveProject: "Project is deactivated and cannot be used",
     reportNotFound: "Report not found",
@@ -211,6 +257,7 @@ export const PAGINATION_SETTINGS = {
 export const DASHBOARD_SETTINGS = {
   defaultTaskTrendWeeks: 8,
   defaultActivityLimit: 20,
+  firstSubmissionLimit: 1,
   completedTaskStatus: "DONE",
   messages: {
     invalidDateRange: "Week end must be after or equal to week start",
@@ -222,12 +269,17 @@ export const VALIDATION_SETTINGS = {
   name: { min: 2, max: 100 },
   email: { max: 255 },
   password: { min: 8, max: 128 },
-  taskName: { max: 500 },
-  description: { max: 500 },
+  search: { max: 200 },
+  taskName: { min: 1, max: 500 },
+  description: { min: 1, max: 500 },
+  deliverable: { max: 500 },
   projectDescription: { max: 1000 },
   projectName: { min: 2, max: 200 },
   reportNotes: { max: 2000 },
   percentage: { min: 0, max: 100 },
+  minutes: { min: 0, max: 10_080 },
+  sortOrder: { min: 0 },
+  datePattern: /^\d{4}-\d{2}-\d{2}$/,
   reviewCommentRequired: true,
 } as const;
 

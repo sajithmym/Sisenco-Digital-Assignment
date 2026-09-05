@@ -1,12 +1,13 @@
 import { BadRequestException } from "@nestjs/common";
+import { REPORT_SETTINGS } from "../settings";
 
-export const DAY_MS = 86_400_000;
+export const DAY_MS = REPORT_SETTINGS.calendar.millisecondsPerDay;
 
 /** Reporting dates are calendar dates in UTC; every report covers Monday-Sunday. */
 export function weekOf(value: Date | string = new Date()) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime()))
-    throw new BadRequestException("Invalid reporting date.");
+    throw new BadRequestException(REPORT_SETTINGS.messages.invalidReportingDate);
   date.setUTCHours(0, 0, 0, 0);
   date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
   return date;
@@ -15,10 +16,11 @@ export function weekOf(value: Date | string = new Date()) {
 export function validateReportWeek(start: Date, end: Date) {
   if (
     start.getTime() !== weekOf(start).getTime() ||
-    end.getTime() !== start.getTime() + 6 * DAY_MS
+    end.getTime() !==
+      start.getTime() + REPORT_SETTINGS.calendar.finalDayOffset * DAY_MS
   ) {
     throw new BadRequestException(
-      "Reports must cover Monday through Sunday using date-only values.",
+      REPORT_SETTINGS.messages.invalidReportingWeek,
     );
   }
 }
@@ -26,18 +28,27 @@ export function validateReportWeek(start: Date, end: Date) {
 export function selectedWeeks(start?: string, end?: string) {
   const first = weekOf(start || end || new Date());
   const last = weekOf(end || start || new Date());
-  if (last < first || (last.getTime() - first.getTime()) / (7 * DAY_MS) > 51) {
-    throw new BadRequestException(
-      "Choose an ordered reporting range of at most 52 weeks.",
-    );
+  if (
+    last < first ||
+    (last.getTime() - first.getTime()) /
+      (REPORT_SETTINGS.calendar.daysPerWeek * DAY_MS) >=
+      REPORT_SETTINGS.calendar.maxSelectableWeeks
+  ) {
+    throw new BadRequestException(REPORT_SETTINGS.messages.reportingRangeTooLarge);
   }
   const weeks: Date[] = [];
-  for (let time = first.getTime(); time <= last.getTime(); time += 7 * DAY_MS)
+  for (
+    let time = first.getTime();
+    time <= last.getTime();
+    time += REPORT_SETTINGS.calendar.daysPerWeek * DAY_MS
+  )
     weeks.push(new Date(time));
   return {
     first,
     last,
-    endExclusive: new Date(last.getTime() + 7 * DAY_MS),
+    endExclusive: new Date(
+      last.getTime() + REPORT_SETTINGS.calendar.daysPerWeek * DAY_MS,
+    ),
     weeks,
   };
 }

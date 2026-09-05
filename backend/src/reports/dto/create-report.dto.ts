@@ -17,52 +17,52 @@ import {
   Matches,
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
-import { REPORT_SETTINGS } from "../../settings";
+import { REPORT_SETTINGS, VALIDATION_SETTINGS } from "../../settings";
 
 class CreateTaskDto {
   @IsString()
   @Transform(({ value }: { value: unknown }) =>
     typeof value === "string" ? value.trim() : value,
   )
-  @MinLength(1)
-  @MaxLength(500)
+  @MinLength(VALIDATION_SETTINGS.taskName.min)
+  @MaxLength(VALIDATION_SETTINGS.taskName.max)
   taskName: string;
 
   @ValidateIf((_object, value) => value !== undefined)
-  @IsEnum(["LOW", "MEDIUM", "HIGH", "CRITICAL"])
+  @IsEnum(REPORT_SETTINGS.taskPriorities)
   priority?: string;
 
   @ValidateIf((_object, value) => value !== undefined)
   @IsInt()
-  @Min(0)
-  @Max(100)
+  @Min(VALIDATION_SETTINGS.percentage.min)
+  @Max(VALIDATION_SETTINGS.percentage.max)
   plannedPercentage?: number;
 
   @ValidateIf((_object, value) => value !== undefined)
   @IsInt()
-  @Min(0)
-  @Max(100)
+  @Min(VALIDATION_SETTINGS.percentage.min)
+  @Max(VALIDATION_SETTINGS.percentage.max)
   actualPercentage?: number;
 
   @ValidateIf((_object, value) => value !== undefined)
-  @IsEnum(["TODO", "IN_PROGRESS", "DONE", "BLOCKED"])
+  @IsEnum(REPORT_SETTINGS.taskStatuses)
   status?: string;
 
   @ValidateIf((_object, value) => value !== undefined)
   @IsInt()
-  @Min(0)
-  @Max(10080)
+  @Min(VALIDATION_SETTINGS.minutes.min)
+  @Max(VALIDATION_SETTINGS.minutes.max)
   plannedMinutes?: number;
 
   @ValidateIf((_object, value) => value !== undefined)
   @IsInt()
-  @Min(0)
-  @Max(10080)
+  @Min(VALIDATION_SETTINGS.minutes.min)
+  @Max(VALIDATION_SETTINGS.minutes.max)
   actualMinutes?: number;
 
   @ValidateIf((_object, value) => value !== undefined)
   @IsString()
-  @MaxLength(500)
+  @MaxLength(VALIDATION_SETTINGS.deliverable.max)
   deliverable?: string;
 }
 
@@ -71,13 +71,13 @@ class CreateNextWeekTaskDto {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === "string" ? value.trim() : value,
   )
-  @MinLength(1)
-  @MaxLength(500)
+  @MinLength(VALIDATION_SETTINGS.description.min)
+  @MaxLength(VALIDATION_SETTINGS.description.max)
   description: string;
 
   @ValidateIf((_object, value) => value !== undefined)
   @IsInt()
-  @Min(0)
+  @Min(VALIDATION_SETTINGS.sortOrder.min)
   sortOrder?: number;
 }
 
@@ -86,8 +86,8 @@ class CreateBlockerDto {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === "string" ? value.trim() : value,
   )
-  @MinLength(1)
-  @MaxLength(500)
+  @MinLength(VALIDATION_SETTINGS.description.min)
+  @MaxLength(VALIDATION_SETTINGS.description.max)
   description: string;
 
   @ValidateIf((_object, value) => value !== undefined)
@@ -104,8 +104,8 @@ class CreateAchievementDto {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === "string" ? value.trim() : value,
   )
-  @MinLength(1)
-  @MaxLength(500)
+  @MinLength(VALIDATION_SETTINGS.description.min)
+  @MaxLength(VALIDATION_SETTINGS.description.max)
   description: string;
 
   @ValidateIf((_object, value) => value !== undefined)
@@ -114,12 +114,12 @@ class CreateAchievementDto {
 }
 
 class CreateWorkHourDto {
-  @IsEnum(["DEVELOPMENT", "TESTING", "MEETINGS", "DOCUMENTATION", "OTHER"])
+  @IsEnum(REPORT_SETTINGS.workHourTypes)
   type: string;
 
   @IsInt()
-  @Min(0)
-  @Max(10080)
+  @Min(VALIDATION_SETTINGS.minutes.min)
+  @Max(VALIDATION_SETTINGS.minutes.max)
   minutes: number;
 }
 
@@ -128,17 +128,17 @@ export class CreateReportDto {
   @IsUUID()
   projectId?: string | null;
 
-  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  @Matches(VALIDATION_SETTINGS.datePattern)
   @IsDateString({ strict: true })
   weekStart: string;
 
-  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  @Matches(VALIDATION_SETTINGS.datePattern)
   @IsDateString({ strict: true })
   weekEnd: string;
 
   @ValidateIf((_object, value) => value !== undefined)
   @IsString()
-  @MaxLength(2000)
+  @MaxLength(VALIDATION_SETTINGS.reportNotes.max)
   notes?: string;
 
   @ValidateIf((_object, value) => value !== undefined)

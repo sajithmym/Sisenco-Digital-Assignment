@@ -61,12 +61,16 @@ export class ReportsService {
                 taskName: t.taskName,
                 priority: (t.priority ??
                   REPORT_SETTINGS.defaultTaskPriority) as Prisma.ReportTaskCreateWithoutReportInput["priority"],
-                plannedPercentage: t.plannedPercentage || 0,
-                actualPercentage: t.actualPercentage || 0,
+                plannedPercentage:
+                  t.plannedPercentage ?? REPORT_SETTINGS.defaultNumericValue,
+                actualPercentage:
+                  t.actualPercentage ?? REPORT_SETTINGS.defaultNumericValue,
                 status: (t.status ??
                   REPORT_SETTINGS.defaultTaskStatus) as Prisma.ReportTaskCreateWithoutReportInput["status"],
-                plannedMinutes: t.plannedMinutes || 0,
-                actualMinutes: t.actualMinutes || 0,
+                plannedMinutes:
+                  t.plannedMinutes ?? REPORT_SETTINGS.defaultNumericValue,
+                actualMinutes:
+                  t.actualMinutes ?? REPORT_SETTINGS.defaultNumericValue,
                 deliverable: t.deliverable,
               })),
             }
@@ -267,12 +271,18 @@ export class ReportsService {
                     taskName: task.taskName,
                     priority: (task.priority ??
                       REPORT_SETTINGS.defaultTaskPriority) as Prisma.ReportTaskCreateWithoutReportInput["priority"],
-                    plannedPercentage: task.plannedPercentage || 0,
-                    actualPercentage: task.actualPercentage || 0,
+                    plannedPercentage:
+                      task.plannedPercentage ??
+                      REPORT_SETTINGS.defaultNumericValue,
+                    actualPercentage:
+                      task.actualPercentage ??
+                      REPORT_SETTINGS.defaultNumericValue,
                     status: (task.status ??
                       REPORT_SETTINGS.defaultTaskStatus) as Prisma.ReportTaskCreateWithoutReportInput["status"],
-                    plannedMinutes: task.plannedMinutes || 0,
-                    actualMinutes: task.actualMinutes || 0,
+                    plannedMinutes:
+                      task.plannedMinutes ?? REPORT_SETTINGS.defaultNumericValue,
+                    actualMinutes:
+                      task.actualMinutes ?? REPORT_SETTINGS.defaultNumericValue,
                     deliverable: task.deliverable,
                   })),
                 },
@@ -346,7 +356,11 @@ export class ReportsService {
     if (status) where.status = status as Prisma.ReportWhereInput["status"];
     const filterWeekStart = weekStart ? weekOf(weekStart) : undefined;
     const filterWeekEnd = weekEnd
-      ? new Date(weekOf(weekEnd).getTime() + 7 * DAY_MS - 1)
+      ? new Date(
+          weekOf(weekEnd).getTime() +
+            REPORT_SETTINGS.calendar.daysPerWeek * DAY_MS -
+            1,
+        )
       : undefined;
     if (filterWeekStart && filterWeekEnd && filterWeekEnd < filterWeekStart) {
       throw new BadRequestException(REPORT_SETTINGS.messages.invalidWeekRange);

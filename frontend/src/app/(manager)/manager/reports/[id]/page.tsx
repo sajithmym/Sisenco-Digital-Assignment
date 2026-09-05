@@ -28,6 +28,7 @@ import {
 } from "@/features/reports/components/report-content";
 import { formatDate } from "@/lib/utils";
 import type { Report } from "@/types";
+import { REPORT_STATUSES } from "@/constants";
 
 export default function ManagerReportDetailPage() {
   const params = useParams();
@@ -100,7 +101,7 @@ export default function ManagerReportDetailPage() {
   if (error) return <ErrorState message={error} onRetry={fetchReport} />;
   if (!report) return <ErrorState message="Report not found" />;
 
-  const isReviewable = report.status === "SUBMITTED";
+  const isReviewable = report.status === REPORT_STATUSES.SUBMITTED;
 
   return (
     <div className="space-y-6">

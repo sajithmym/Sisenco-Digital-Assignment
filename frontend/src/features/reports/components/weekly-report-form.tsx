@@ -37,6 +37,7 @@ import {
   WORK_HOUR_TYPE_LABELS,
 } from "@/constants";
 import type { Project, Report } from "@/types";
+import { REPORT_SETTINGS, VALIDATION_SETTINGS } from "@/lib/settings";
 
 type WeeklyReportFormProps = {
   initialReport?: Report;
@@ -138,12 +139,12 @@ export function WeeklyReportForm({
         onAdd={() =>
           taskFields.append({
             taskName: "",
-            priority: "MEDIUM",
-            plannedPercentage: 0,
-            actualPercentage: 0,
-            status: "TODO",
-            plannedMinutes: 0,
-            actualMinutes: 0,
+            priority: REPORT_SETTINGS.defaultTaskPriority,
+            plannedPercentage: REPORT_SETTINGS.defaultNumericValue,
+            actualPercentage: REPORT_SETTINGS.defaultNumericValue,
+            status: REPORT_SETTINGS.defaultTaskStatus,
+            plannedMinutes: REPORT_SETTINGS.defaultNumericValue,
+            actualMinutes: REPORT_SETTINGS.defaultNumericValue,
             deliverable: "",
           })
         }
@@ -221,7 +222,8 @@ export function WeeklyReportForm({
                 input={register(`tasks.${index}.plannedPercentage`, {
                   valueAsNumber: true,
                 })}
-                max={100}
+                min={VALIDATION_SETTINGS.percentage.min}
+                max={VALIDATION_SETTINGS.percentage.max}
               />
               <NumberField
                 className="md:col-span-2"
@@ -230,7 +232,8 @@ export function WeeklyReportForm({
                 input={register(`tasks.${index}.actualPercentage`, {
                   valueAsNumber: true,
                 })}
-                max={100}
+                min={VALIDATION_SETTINGS.percentage.min}
+                max={VALIDATION_SETTINGS.percentage.max}
               />
               <NumberField
                 className="md:col-span-2"
@@ -418,7 +421,12 @@ export function WeeklyReportForm({
       <Section
         title="Work hours"
         description="Use whole minutes for each category."
-        onAdd={() => workHourFields.append({ type: "DEVELOPMENT", minutes: 0 })}
+        onAdd={() =>
+          workHourFields.append({
+            type: REPORT_SETTINGS.defaultWorkHourType,
+            minutes: REPORT_SETTINGS.defaultNumericValue,
+          })
+        }
       >
         {workHourFields.fields.length === 0 ? (
           <EmptyRow text="No work hours added." />
@@ -485,7 +493,7 @@ export function WeeklyReportForm({
       </Card>
       {Object.keys(errors).length > 0 && (
         <p role="alert" className="text-sm text-destructive">
-          Check the highlighted fields. Each section allows at most 50 items;
+          Check the highlighted fields. Each section allows at most {REPORT_SETTINGS.maxItemsPerSection} items;
           percentages and minutes must be whole numbers.
         </p>
       )}
@@ -584,18 +592,25 @@ function NumberField({
   label,
   error,
   input,
+  min,
   max,
   className,
 }: {
   label: string;
   error?: string;
   input: UseFormRegisterReturn;
+  min?: number;
   max?: number;
   className?: string;
 }) {
   return (
     <Field label={label} error={error} className={className}>
-      <Input type="number" min={0} max={max} {...input} />
+      <Input
+        type="number"
+        min={min ?? VALIDATION_SETTINGS.minutes.min}
+        max={max ?? VALIDATION_SETTINGS.minutes.max}
+        {...input}
+      />
     </Field>
   );
 }

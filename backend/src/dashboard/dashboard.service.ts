@@ -3,7 +3,9 @@ import { Prisma } from "@prisma/client";
 import { PrismaService } from "../database/prisma.service";
 import { DAY_MS, selectedWeeks, weekOf } from "../reports/report-date";
 import { PaginatedResponse } from "../common/dto";
+import { ReportStatus, UserRole } from "../common/enums";
 import { RosterFilterDto } from "./dto/dashboard-filter.dto";
+import { DASHBOARD_SETTINGS, REPORT_SETTINGS } from "../settings";
 
 @Injectable()
 export class DashboardService {
@@ -13,7 +15,7 @@ export class DashboardService {
     const range = selectedWeeks(start, end);
     return {
       weekStart: { gte: range.first, lt: range.endExclusive },
-      status: { not: "DRAFT" },
+      status: { not: ReportStatus.DRAFT },
     };
   }
 
@@ -21,7 +23,7 @@ export class DashboardService {
     const range = selectedWeeks(start, end);
     const members = await this.prisma.user.findMany({
       where: {
-        role: "TEAM_MEMBER",
+        role: UserRole.TEAM_MEMBER,
         isActive: true,
         ...(userId ? { id: userId } : {}),
       },
@@ -43,7 +45,7 @@ export class DashboardService {
         versions: {
           select: { submittedAt: true },
           orderBy: { versionNumber: "asc" },
-          take: 1,
+          take: DASHBOARD_SETTINGS.firstSubmissionLimit,
         },
       },
     });
@@ -58,8 +60,11 @@ export class DashboardService {
         const report = lookup.get(`${member.id}:${week.toISOString()}`);
         const submittedAt =
           report?.versions[0]?.submittedAt || report?.submittedAt || null;
-        const deadline = new Date(week.getTime() + 7 * DAY_MS);
-        const submitted = report !== undefined && report.status !== "DRAFT";
+        const deadline = new Date(
+          week.getTime() + REPORT_SETTINGS.calendar.daysPerWeek * DAY_MS,
+        );
+        const submitted =
+          report !== undefined && report.status !== ReportStatus.DRAFT;
         const late = submitted
           ? Boolean(submittedAt && submittedAt >= deadline)
           : new Date() >= deadline;
@@ -69,10 +74,11 @@ export class DashboardService {
           weekStart: week.toISOString(),
           deadline: deadline.toISOString(),
           status:
-            report?.status === "DRAFT"
-              ? "DRAFT"
-              : report?.status || "NOT_STARTED",
-          reportId: report?.status === "DRAFT" ? null : report?.id || null,
+            report?.status === ReportStatus.DRAFT
+              ? ReportStatus.DRAFT
+              : report?.status || REPORT_SETTINGS.rosterStates.notStarted,
+          reportId:
+            report?.status === ReportStatus.DRAFT ? null : report?.id || null,
           submittedAt: submittedAt?.toISOString() || null,
           submitted,
           late,
@@ -87,8 +93,9 @@ export class DashboardService {
       filters.weekEnd,
       filters.userId,
     );
-    if (filters.status === "LATE") rows = rows.filter((row) => row.late);
-    else if (filters.status === "PENDING")
+    if (filters.status === REPORT_SETTINGS.rosterStates.late)
+      rows = rows.filter((row) => row.late);
+    else if (filters.status === REPORT_SETTINGS.rosterStates.pending)
       rows = rows.filter((row) => !row.submitted);
     else if (filters.status)
       rows = rows.filter((row) => row.status === filters.status);
@@ -110,13 +117,17 @@ export class DashboardService {
       where: { isResolved: false, report: this.dateFilter(start, end) },
     });
     return {
-      totalReports: rows.filter((row) => row.status !== "NOT_STARTED").length,
-      submittedCount,
-      approvedCount: rows.filter((row) => row.status === "APPROVED").length,
-      needsCorrectionCount: rows.filter(
-        (row) => row.status === "NEEDS_CORRECTION",
+      totalReports: rows.filter(
+        (row) => row.status !== REPORT_SETTINGS.rosterStates.notStarted,
       ).length,
-      draftCount: rows.filter((row) => row.status === "DRAFT").length,
+      submittedCount,
+      approvedCount: rows.filter((row) => row.status === ReportStatus.APPROVED)
+        .length,
+      needsCorrectionCount: rows.filter(
+        (row) => row.status === ReportStatus.NEEDS_CORRECTION,
+      ).length,
+      draftCount: rows.filter((row) => row.status === ReportStatus.DRAFT)
+        .length,
       notStartedCount: rows.filter((row) => row.status === "NOT_STARTED")
         .length,
       pendingCount: rows.filter((row) => !row.submitted).length,
@@ -141,7 +152,10 @@ export class DashboardService {
 
   async getTaskTrends(weeks = 8, weekEnd?: string) {
     const last = weekOf(weekEnd || new Date());
-    const start = new Date(last.getTime() - (weeks - 1) * 7 * DAY_MS);
+    const start = new Date(
+      last.getTime() -
+        (weeks - 1) * REPORT_SETTINGS.calendar.daysPerWeek * DAY_MS,
+    );
     const range = selectedWeeks(start.toISOString(), last.toISOString());
     const reports = await this.prisma.report.findMany({
       where: this.dateFilter(start.toISOString(), last.toISOString()),
@@ -156,7 +170,9 @@ export class DashboardService {
       return {
         week: week.toISOString().slice(0, 10),
         total: tasks.length,
-        completed: tasks.filter((task) => task.status === "DONE").length,
+        completed: tasks.filter(
+          (task) => task.status === DASHBOARD_SETTINGS.completedTaskStatus,
+        ).length,
       };
     });
   }

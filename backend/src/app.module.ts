@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ThrottlerModule } from "@nestjs/throttler";
-import { AUTH_SETTINGS } from "./settings";
+import { SERVER_SETTINGS } from "./settings";
 import { DatabaseModule } from "./database/database.module";
 import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
@@ -14,8 +14,8 @@ import { HealthModule } from "./health/health.module";
   imports: [
     ThrottlerModule.forRoot([
       {
-        ttl: AUTH_SETTINGS.authRateLimit.ttlMilliseconds,
-        limit: 100,
+        ttl: SERVER_SETTINGS.apiRateLimit.ttlMilliseconds,
+        limit: SERVER_SETTINGS.apiRateLimit.maxRequests,
       },
     ]),
     DatabaseModule,

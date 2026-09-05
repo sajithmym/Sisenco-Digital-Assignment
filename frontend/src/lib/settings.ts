@@ -8,6 +8,7 @@ export const APP_SETTINGS = {
   description: 'Internal team weekly report and dashboard application',
   memberPanelTitle: 'Weekly Reports',
   managerPanelTitle: 'Manager Panel',
+  language: 'en',
   locale: 'en-US',
   timezone: process.env.NEXT_PUBLIC_APP_TIMEZONE || 'Asia/Colombo',
 } as const;
@@ -118,6 +119,13 @@ export const CHART_SETTINGS = {
   taskCompleted: '#16a34a',
   projectReports: '#6366f1',
   projectMinutes: '#d97706',
+  height: 300,
+  pieOuterRadius: 100,
+} as const;
+
+export const DASHBOARD_SETTINGS = {
+  taskTrendWeeks: 8,
+  recentActivityLimit: 10,
 } as const;
 
 // ─── Feature Flags ─────────────────────────────────────────
@@ -152,6 +160,40 @@ export const PAGINATION_SETTINGS = {
   pageSizeOptions: [10, 20, 50, 100] as const,
 } as const;
 
+// ─── Reporting workflow ──────────────────────────────────
+// These values mirror the backend validation rules. Keep client validation
+// helpful, but treat the backend as the authority for enforcement.
+export const REPORT_SETTINGS = {
+  defaultTaskPriority: 'MEDIUM',
+  defaultTaskStatus: 'TODO',
+  defaultWorkHourType: 'DEVELOPMENT',
+  defaultNumericValue: 0,
+  maxItemsPerSection: 50,
+  taskPriorities: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const,
+  taskStatuses: ['TODO', 'IN_PROGRESS', 'DONE', 'BLOCKED'] as const,
+  workHourTypes: [
+    'DEVELOPMENT',
+    'TESTING',
+    'MEETINGS',
+    'DOCUMENTATION',
+    'OTHER',
+  ] as const,
+  rosterStatuses: [
+    'ALL',
+    'NOT_STARTED',
+    'DRAFT',
+    'SUBMITTED',
+    'NEEDS_CORRECTION',
+    'APPROVED',
+    'PENDING',
+    'LATE',
+  ] as const,
+  calendar: {
+    millisecondsPerDay: 86_400_000,
+    finalDayOffset: 6,
+  },
+} as const;
+
 // ─── Auth ───────────────────────────────────────────────────
 export const AUTH_SETTINGS = {
   // Access tokens remain only in module memory. Refresh tokens are HttpOnly cookies,
@@ -164,11 +206,13 @@ export const AUTH_SETTINGS = {
 
 // ─── Validation ─────────────────────────────────────────────
 export const VALIDATION_SETTINGS = {
+  requiredText: { min: 1 },
   name: { min: 2, max: 100 },
   password: { min: 8, max: 128 },
-  taskName: { max: 500 },
-  description: { max: 500 },
+  taskName: { min: 1, max: 500 },
+  description: { min: 1, max: 500 },
   reportNotes: { max: 2000 },
   percentage: { min: 0, max: 100 },
-  minutes: { min: 0 },
+  minutes: { min: 0, max: 10_080 },
+  sortOrder: { min: 0 },
 } as const;

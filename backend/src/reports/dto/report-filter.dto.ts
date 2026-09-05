@@ -1,5 +1,6 @@
 import { IsOptional, IsDateString, IsEnum, IsUUID } from 'class-validator';
 import { PaginationDto } from '../../common/dto';
+import { ReportStatus } from '../../common/enums';
 
 export class ReportFilterDto extends PaginationDto {
   @IsOptional()
@@ -11,8 +12,8 @@ export class ReportFilterDto extends PaginationDto {
   projectId?: string;
 
   @IsOptional()
-  @IsEnum(['DRAFT', 'SUBMITTED', 'NEEDS_CORRECTION', 'APPROVED'])
-  status?: string;
+  @IsEnum(ReportStatus)
+  status?: ReportStatus;
 
   @IsOptional()
   @IsDateString()

@@ -9,7 +9,7 @@ import {
   IsIn,
 } from "class-validator";
 import { PaginationDto } from "../../common/dto";
-import { DASHBOARD_SETTINGS } from "../../settings";
+import { DASHBOARD_SETTINGS, PAGINATION_SETTINGS, REPORT_SETTINGS } from "../../settings";
 
 export class DashboardDateFilterDto {
   @IsOptional()
@@ -28,8 +28,8 @@ export class TaskTrendFilterDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
-  @Max(52)
+  @Min(PAGINATION_SETTINGS.defaultPage)
+  @Max(REPORT_SETTINGS.calendar.maxSelectableWeeks)
   weeks: number = DASHBOARD_SETTINGS.defaultTaskTrendWeeks;
 }
 
@@ -37,8 +37,8 @@ export class ActivityFilterDto extends DashboardDateFilterDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
-  @Max(100)
+  @Min(PAGINATION_SETTINGS.defaultPage)
+  @Max(PAGINATION_SETTINGS.maxLimit)
   limit: number = DASHBOARD_SETTINGS.defaultActivityLimit;
 }
 
@@ -56,14 +56,6 @@ export class RosterFilterDto extends PaginationDto {
   userId?: string;
 
   @IsOptional()
-  @IsIn([
-    "DRAFT",
-    "SUBMITTED",
-    "NEEDS_CORRECTION",
-    "APPROVED",
-    "NOT_STARTED",
-    "LATE",
-    "PENDING",
-  ])
+  @IsIn(REPORT_SETTINGS.rosterStatuses)
   status?: string;
 }

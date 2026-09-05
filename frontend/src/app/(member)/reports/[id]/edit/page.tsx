@@ -11,6 +11,7 @@ import { ErrorState } from "@/components/shared/error-state";
 import { LoadingState } from "@/components/shared/loading-state";
 import { useToast } from "@/components/ui/toast";
 import type { Report } from "@/types";
+import { REPORT_STATUSES } from "@/constants";
 
 export default function EditReportPage() {
   const { id } = useParams<{ id: string }>();
@@ -47,7 +48,10 @@ export default function EditReportPage() {
   if (loading) return <LoadingState message="Loading report editor..." />;
   if (error) return <ErrorState message={error} onRetry={fetchReport} />;
   if (!report) return <ErrorState message="Report not found" />;
-  if (report.status !== "DRAFT" && report.status !== "NEEDS_CORRECTION")
+  if (
+    report.status !== REPORT_STATUSES.DRAFT &&
+    report.status !== REPORT_STATUSES.NEEDS_CORRECTION
+  )
     return (
       <ErrorState message="This report is read-only and can no longer be edited." />
     );

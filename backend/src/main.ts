@@ -10,7 +10,7 @@ async function bootstrap() {
   validateRuntimeConfiguration();
   const app = await NestFactory.create(AppModule);
 
-  const { port, frontendUrl, apiPrefix } = SERVER_SETTINGS;
+  const { port, publicUrl, frontendUrl, apiPrefix, cors } = SERVER_SETTINGS;
 
   // Security
   app.use(helmet());
@@ -20,8 +20,8 @@ async function bootstrap() {
   app.enableCors({
     origin: frontendUrl,
     credentials: true,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization', AUTH_SETTINGS.csrfHeaderName],
+    methods: cors.methods,
+    allowedHeaders: [...cors.allowedHeaders, AUTH_SETTINGS.csrfHeaderName],
   });
 
   // Global prefix
@@ -40,6 +40,6 @@ async function bootstrap() {
   );
 
   await app.listen(port);
-  console.log(`🚀 Backend running on http://localhost:${port}`);
+  console.log(`🚀 Backend running on ${publicUrl}`);
 }
 bootstrap();

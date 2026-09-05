@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang={APP_SETTINGS.language}>
       <body className={inter.className} style={THEME_CSS_VARIABLES as React.CSSProperties}>
         <ToastProvider>{children}</ToastProvider>
       </body>

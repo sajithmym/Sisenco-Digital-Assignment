@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { REPORT_STATUS_LABELS } from "@/constants";
+import { REPORT_STATUSES, REPORT_STATUS_LABELS } from "@/constants";
 
 interface StatusBadgeProps {
   status: string;
@@ -9,10 +9,10 @@ interface StatusBadgeProps {
 }
 
 const statusVariantMap: Record<string, "default" | "secondary" | "outline" | "success" | "warning" | "info" | "destructive"> = {
-  DRAFT: "secondary",
-  SUBMITTED: "info",
-  NEEDS_CORRECTION: "warning",
-  APPROVED: "success",
+  [REPORT_STATUSES.DRAFT]: "secondary",
+  [REPORT_STATUSES.SUBMITTED]: "info",
+  [REPORT_STATUSES.NEEDS_CORRECTION]: "warning",
+  [REPORT_STATUSES.APPROVED]: "success",
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {

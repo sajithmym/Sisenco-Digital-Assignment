@@ -64,6 +64,8 @@ cp .env.example .env
 # ─── Server ─────────────────────────────────────────────────
 PORT=5000
 FRONTEND_URL=http://localhost:3000
+# Optional public API address used in startup logs
+PUBLIC_API_URL=http://localhost:5000
 NODE_ENV=development
 
 # ─── Database ───────────────────────────────────────────────

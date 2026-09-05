@@ -8,6 +8,8 @@ import { Pagination } from "@/components/shared/pagination";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { REPORT_SETTINGS, PAGINATION_SETTINGS } from "@/lib/settings";
+import { REPORT_STATUSES } from "@/constants";
 import {
   Select,
   SelectContent,
@@ -24,14 +26,14 @@ export function SubmissionRoster({
   weekEnd: string;
 }) {
   const [status, setStatus] = useState("ALL");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState<number>(PAGINATION_SETTINGS.defaultPage);
   const loader = useCallback(
     () =>
       managerApi.getRoster({
         weekStart,
         weekEnd,
         page,
-        limit: 20,
+        limit: PAGINATION_SETTINGS.defaultLimit,
         status: status === "ALL" ? undefined : status,
       }),
     [weekStart, weekEnd, page, status],
@@ -50,7 +52,7 @@ export function SubmissionRoster({
           value={status}
           onValueChange={(value) => {
             setStatus(value);
-            setPage(1);
+            setPage(PAGINATION_SETTINGS.defaultPage);
           }}
         >
           <SelectTrigger
@@ -60,16 +62,7 @@ export function SubmissionRoster({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {[
-              "ALL",
-              "NOT_STARTED",
-              "DRAFT",
-              "SUBMITTED",
-              "NEEDS_CORRECTION",
-              "APPROVED",
-              "PENDING",
-              "LATE",
-            ].map((value) => (
+            {REPORT_SETTINGS.rosterStatuses.map((value) => (
               <SelectItem key={value} value={value}>
                 {value.replaceAll("_", " ")}
               </SelectItem>
@@ -124,7 +117,7 @@ export function SubmissionRoster({
                           >
                             Review report
                           </Link>
-                        ) : row.status === "DRAFT" ? (
+                        ) : row.status === REPORT_STATUSES.DRAFT ? (
                           "Private draft"
                         ) : (
                           "Not started"

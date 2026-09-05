@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "./pagination";
+import { PAGINATION_SETTINGS, USER_ROLES } from "@/lib/settings";
 
 export function EntityPicker({
   kind,
@@ -30,7 +31,7 @@ export function EntityPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState<number>(PAGINATION_SETTINGS.defaultPage);
   const [selected, setSelected] = useState<{ id: string; name: string }>();
   const id = useId();
   const loader = useCallback(async () => {
@@ -38,15 +39,15 @@ export function EntityPicker({
       kind === "project"
         ? await projectsApi.getAll({
             page,
-            limit: 20,
+            limit: PAGINATION_SETTINGS.defaultLimit,
             search: search || undefined,
             isActive: includeArchived ? undefined : true,
           })
         : await usersApi.getAll({
             page,
-            limit: 20,
+            limit: PAGINATION_SETTINGS.defaultLimit,
             search: search || undefined,
-            role: "TEAM_MEMBER",
+            role: USER_ROLES.TEAM_MEMBER,
           });
     return {
       data: response.data.map((item) => ({
@@ -100,7 +101,7 @@ export function EntityPicker({
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
-                setPage(1);
+                setPage(PAGINATION_SETTINGS.defaultPage);
               }}
               className="h-10 rounded-lg pl-9 focus-visible:ring-primary/40"
               placeholder="Search by name"

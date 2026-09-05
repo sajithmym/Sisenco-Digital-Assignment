@@ -13,13 +13,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { PAGINATION_SETTINGS } from "@/lib/settings";
+import { REPORT_STATUSES } from "@/constants";
 import type { Report, PaginatedResponse } from "@/types";
 
 export default function MemberDashboardPage() {
   const loader = useCallback(async () => {
     const [data, summary] = await Promise.all([
       reportsApi.getMyReports({
-        page: 1,
+        page: PAGINATION_SETTINGS.defaultPage,
         limit: PAGINATION_SETTINGS.dashboardLimit,
       }),
       reportsApi.getMySummary(),
@@ -67,7 +68,7 @@ export default function MemberDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {summary.APPROVED || 0}
+              {summary[REPORT_STATUSES.APPROVED] || 0}
             </div>
           </CardContent>
         </Card>
@@ -77,7 +78,7 @@ export default function MemberDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {summary.SUBMITTED || 0}
+              {summary[REPORT_STATUSES.SUBMITTED] || 0}
             </div>
           </CardContent>
         </Card>
@@ -89,7 +90,7 @@ export default function MemberDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
-              {summary.NEEDS_CORRECTION || 0}
+              {summary[REPORT_STATUSES.NEEDS_CORRECTION] || 0}
             </div>
           </CardContent>
         </Card>

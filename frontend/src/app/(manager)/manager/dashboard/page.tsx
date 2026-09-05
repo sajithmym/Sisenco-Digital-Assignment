@@ -40,7 +40,8 @@ import type {
   TimeDistribution,
   ActivityItem,
 } from "@/types";
-import { CHART_SETTINGS } from "@/lib/settings";
+import { CHART_SETTINGS, DASHBOARD_SETTINGS } from "@/lib/settings";
+import { REVIEW_ACTIONS } from "@/constants";
 
 const COLORS = CHART_SETTINGS.palette;
 
@@ -57,10 +58,14 @@ export default function ManagerDashboardPage() {
     ] = await Promise.all([
       managerApi.getSummary(week.weekStart, week.weekEnd),
       managerApi.getStatusDistribution(week.weekStart, week.weekEnd),
-      managerApi.getTaskTrends(8, week.weekEnd),
+      managerApi.getTaskTrends(DASHBOARD_SETTINGS.taskTrendWeeks, week.weekEnd),
       managerApi.getProjectWorkload(week.weekStart, week.weekEnd),
       managerApi.getTimeDistribution(week.weekStart, week.weekEnd),
-      managerApi.getRecentActivity(10, week.weekStart, week.weekEnd),
+      managerApi.getRecentActivity(
+        DASHBOARD_SETTINGS.recentActivityLimit,
+        week.weekStart,
+        week.weekEnd,
+      ),
     ]);
     return {
       summary,
@@ -153,7 +158,7 @@ export default function ManagerDashboardPage() {
           </CardHeader>
           <CardContent>
             {statusDist.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={CHART_SETTINGS.height}>
                 <PieChart>
                   <Pie
                     data={statusDist}
@@ -161,7 +166,7 @@ export default function ManagerDashboardPage() {
                     cy="50%"
                     labelLine={false}
                     label={({ status, count }) => `${status}: ${count}`}
-                    outerRadius={100}
+                    outerRadius={CHART_SETTINGS.pieOuterRadius}
                     fill={CHART_SETTINGS.projectReports}
                     dataKey="count"
                     nameKey="status"
@@ -190,7 +195,7 @@ export default function ManagerDashboardPage() {
           </CardHeader>
           <CardContent>
             {taskTrends.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={CHART_SETTINGS.height}>
                 <BarChart data={taskTrends}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="week" />
@@ -222,7 +227,7 @@ export default function ManagerDashboardPage() {
           </CardHeader>
           <CardContent>
             {projectWorkload.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={CHART_SETTINGS.height}>
                 <BarChart data={projectWorkload}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="projectName" />
@@ -257,7 +262,7 @@ export default function ManagerDashboardPage() {
           </CardHeader>
           <CardContent>
             {timeDist.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={CHART_SETTINGS.height}>
                 <PieChart>
                   <Pie
                     data={timeDist}
@@ -267,7 +272,7 @@ export default function ManagerDashboardPage() {
                     label={({ type, totalMinutes }) =>
                       `${type}: ${formatMinutes(totalMinutes)}`
                     }
-                    outerRadius={100}
+                    outerRadius={CHART_SETTINGS.pieOuterRadius}
                     fill={CHART_SETTINGS.projectReports}
                     dataKey="totalMinutes"
                     nameKey="type"
@@ -306,7 +311,7 @@ export default function ManagerDashboardPage() {
                   <div className="flex-1">
                     <p className="text-sm">
                       <span className="font-medium">{item.reviewer.name}</span>{" "}
-                      {item.action === "APPROVED"
+                      {item.action === REVIEW_ACTIONS.APPROVED
                         ? "approved"
                         : "requested changes on"}{" "}
                       <span className="font-medium">

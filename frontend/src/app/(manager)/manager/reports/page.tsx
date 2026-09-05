@@ -133,7 +133,7 @@ export default function ManagerReportsPage() {
               <SelectContent>
                 <SelectItem value="ALL">All statuses</SelectItem>
                 {Object.values(REPORT_STATUSES)
-                  .filter((status) => status !== "DRAFT")
+                  .filter((status) => status !== REPORT_STATUSES.DRAFT)
                   .map((status) => (
                     <SelectItem key={status} value={status}>
                       {REPORT_STATUS_LABELS[status]}

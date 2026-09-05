@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatDateTime, formatMinutes } from "@/lib/utils";
 import type { Report, ReportContentData } from "@/types";
+import { REVIEW_ACTIONS } from "@/constants";
 
 function Section({
   title,
@@ -215,7 +216,7 @@ export function ReportHistory({ report }: { report: Report }) {
                       <div className="rounded border p-3" key={review.id}>
                         <p className="font-medium">
                           {review.reviewer?.name} ·{" "}
-                          {review.action === "APPROVED"
+                          {review.action === REVIEW_ACTIONS.APPROVED
                             ? "Approved"
                             : "Changes requested"}
                         </p>
@@ -242,7 +243,7 @@ export function ReportHistory({ report }: { report: Report }) {
                 <article key={review.id} className="rounded border p-3">
                   <p className="font-medium">
                     {review.reviewer?.name} ·{" "}
-                    {review.action === "APPROVED"
+                    {review.action === REVIEW_ACTIONS.APPROVED
                       ? "Approved"
                       : "Changes requested"}
                   </p>

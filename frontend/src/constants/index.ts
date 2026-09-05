@@ -1,4 +1,4 @@
-import { ROUTES, USER_ROLES } from "@/lib/settings";
+import { REPORT_SETTINGS, ROUTES, USER_ROLES } from "@/lib/settings";
 
 export { ROUTES, USER_ROLES };
 
@@ -32,7 +32,7 @@ export const USER_ROLE_LABELS: Record<string, string> = {
 };
 
 // ─── Task Priorities ─────────────────────────────────────
-export const TASK_PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
+export const TASK_PRIORITIES = REPORT_SETTINGS.taskPriorities;
 
 export const TASK_PRIORITY_LABELS: Record<string, string> = {
   LOW: "Low",
@@ -42,7 +42,7 @@ export const TASK_PRIORITY_LABELS: Record<string, string> = {
 };
 
 // ─── Task Statuses ───────────────────────────────────────
-export const TASK_STATUSES = ["TODO", "IN_PROGRESS", "DONE", "BLOCKED"] as const;
+export const TASK_STATUSES = REPORT_SETTINGS.taskStatuses;
 
 export const TASK_STATUS_LABELS: Record<string, string> = {
   TODO: "To Do",
@@ -52,13 +52,7 @@ export const TASK_STATUS_LABELS: Record<string, string> = {
 };
 
 // ─── Work Hour Types ─────────────────────────────────────
-export const WORK_HOUR_TYPES = [
-  "DEVELOPMENT",
-  "TESTING",
-  "MEETINGS",
-  "DOCUMENTATION",
-  "OTHER",
-] as const;
+export const WORK_HOUR_TYPES = REPORT_SETTINGS.workHourTypes;
 
 export const WORK_HOUR_TYPE_LABELS: Record<string, string> = {
   DEVELOPMENT: "Development",
@@ -67,6 +61,11 @@ export const WORK_HOUR_TYPE_LABELS: Record<string, string> = {
   DOCUMENTATION: "Documentation",
   OTHER: "Other",
 };
+
+export const REVIEW_ACTIONS = {
+  APPROVED: "APPROVED",
+  CHANGES_REQUESTED: "CHANGES_REQUESTED",
+} as const;
 
 // ─── Pagination ──────────────────────────────────────────
 import { PAGINATION_SETTINGS } from "@/lib/settings";

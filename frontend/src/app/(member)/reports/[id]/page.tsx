@@ -18,6 +18,7 @@ import { formatDate } from "@/lib/utils";
 import type { Report } from "@/types";
 import { ConfirmationDialog } from "@/components/shared/confirmation-dialog";
 import { useToast } from "@/components/ui/toast";
+import { REPORT_STATUSES } from "@/constants";
 
 export default function ReportDetailPage() {
   const params = useParams();
@@ -65,7 +66,8 @@ export default function ReportDetailPage() {
   if (!report) return <ErrorState message="Report not found" />;
 
   const isEditable =
-    report.status === "DRAFT" || report.status === "NEEDS_CORRECTION";
+    report.status === REPORT_STATUSES.DRAFT ||
+    report.status === REPORT_STATUSES.NEEDS_CORRECTION;
 
   return (
     <div className="space-y-6">
@@ -95,7 +97,7 @@ export default function ReportDetailPage() {
         }
       />
 
-      {report.status === "NEEDS_CORRECTION" && report.reviews?.[0]?.comment && (
+      {report.status === REPORT_STATUSES.NEEDS_CORRECTION && report.reviews?.[0]?.comment && (
         <Card className="border-amber-200 bg-amber-50/60">
           <CardHeader>
             <CardTitle className="text-amber-950">Manager feedback</CardTitle>
