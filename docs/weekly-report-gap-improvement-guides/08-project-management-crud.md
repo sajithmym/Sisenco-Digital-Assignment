@@ -1,3 +1,19 @@
-# Historical planning note: 08-project-management-crud
+# Project management CRUD
 
-This file is retained for repository history only. It is not a description of the implemented application and must not be used for setup, permissions, API, security, seed, test, or deployment decisions. Read the current [Project Reference](../PROJECT_REFERENCE.md) and [Setup Guide](../../SETUP.md).
+## Implemented behavior
+
+Manager/admin project screens use typed project services to list, create, edit, archive, and reactivate projects. Project pickers retrieve active projects for report creation/editing.
+
+## Rules and boundaries
+
+Project delete is a soft archive. Historical report data continues to reference archived projects. TEAM_MEMBER users can read active projects but cannot mutate them. Current user_projects data is not assignment enforcement.
+
+## Verification
+
+Create/edit/archive/restore as manager, confirm a member receives forbidden for mutation, and verify reports retain an archived project reference.
+
+## Related guides
+
+- [Authentication and RBAC](../05-authentication-and-rbac.md)
+- [Security](../14-security.md)
+- [Testing](../15-testing.md)

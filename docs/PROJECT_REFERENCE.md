@@ -1,6 +1,6 @@
 # Current Project Reference
 
-This is the source of truth for the Weekly Report Generator as implemented in this repository. It supersedes historical planning and gap-improvement documents under `docs/`.
+This is the cross-cutting source of truth for the Weekly Report Generator as implemented in this repository. The numbered guides and both subfolders provide detailed, feature-specific companion documentation.
 
 ## Scope and architecture
 

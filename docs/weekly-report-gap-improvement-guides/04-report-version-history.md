@@ -1,3 +1,19 @@
-# Historical planning note: 04-report-version-history
+# Report version history
 
-This file is retained for repository history only. It is not a description of the implemented application and must not be used for setup, permissions, API, security, seed, test, or deployment decisions. Read the current [Project Reference](../PROJECT_REFERENCE.md) and [Setup Guide](../../SETUP.md).
+## Implemented behavior
+
+Every submission stores a full immutable snapshot in `report_versions`: report content, project context, tasks, planned work, blockers, achievements, hours, and notes. Reviews reference the exact snapshot considered.
+
+## Rules and boundaries
+
+A later edit/resubmission creates a new version rather than overwriting a prior submission. Members view only their own history; manager visibility continues to exclude private drafts.
+
+## Verification
+
+Use correction/resubmission seed data or create the flow manually. Compare versions and verify review metadata stays linked to its acted-on version.
+
+## Related guides
+
+- [Weekly report domain](../06-weekly-report-domain.md)
+- [Review workflow](../07-review-and-version-workflow.md)
+- [Frontend architecture](../09-frontend-architecture.md)

@@ -81,7 +81,7 @@ The latest verified suites contain 73 backend unit tests, 13 backend HTTP/Postgr
 - [Audit reconciliation](docs/assignment-audit.md)
 - [Confirmed fixes](docs/assignment-fixes.md)
 
-The older numbered and planning documents are retained as marked historical pointers. They are not setup or implementation authority.
+The numbered guides and feature subfolders provide detailed, current implementation documentation. Start with the documentation index for feature-by-feature navigation.
 
 ## Deployment and submission artifacts
 

@@ -1,3 +1,18 @@
-# Historical planning note: 10-manager-dashboard
+# Manager dashboard
 
-This file is retained for repository history only. It is not a description of the implemented application and must not be used for setup, permissions, API, security, seed, test, or deployment decisions. Read the current [Project Reference](../PROJECT_REFERENCE.md) and [Setup Guide](../../SETUP.md).
+## Purpose
+
+This implementation guide describes the current feature, the code boundary that owns it, and the expected behavior. It is a focused companion to [10-manager-dashboard.md](../10-manager-dashboard.md).
+
+## Current implementation
+
+Managers/admins use server-filtered roster, summary, status, trend, workload, time, and activity endpoints. Metrics use UTC reporting weeks and exclude private draft content.
+
+## Verify
+
+Use a manager account, change a date filter, and verify dashboard/roster data changes without exposing any member draft.
+
+## Related documentation
+
+- [Project reference](../PROJECT_REFERENCE.md)
+- [10-manager-dashboard.md](../10-manager-dashboard.md)

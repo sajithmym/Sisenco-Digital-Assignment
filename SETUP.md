@@ -1,6 +1,6 @@
 # Local Setup Guide
 
-Use this guide for the current implementation. The older numbered setup documents are historical pointers only.
+Use this guide for local setup. The numbered and feature-level guides in `docs/` provide detailed current implementation documentation.
 
 ## Prerequisites
 

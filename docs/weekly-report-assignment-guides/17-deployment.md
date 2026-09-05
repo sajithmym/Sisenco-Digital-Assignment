@@ -1,3 +1,18 @@
-# Historical planning note: 17-deployment
+# Deployment
 
-This file is retained for repository history only. It is not a description of the implemented application and must not be used for setup, permissions, API, security, seed, test, or deployment decisions. Read the current [Project Reference](../PROJECT_REFERENCE.md) and [Setup Guide](../../SETUP.md).
+## Purpose
+
+This implementation guide describes the current feature, its code boundary, and the expected behavior. It is a focused companion to [17-deployment.md](../17-deployment.md).
+
+## Current implementation
+
+The project documents a release sequence but supplies no hosting pipeline/Dockerfiles. Production deploys API/frontend separately, runs `prisma migrate deploy`, uses secret storage/HTTPS, then performs operational smoke tests.
+
+## Verify
+
+Confirm secrets, CORS origin, API base URL, cookie behavior, migration status, backups, and role/workflow smoke tests in the target environment.
+
+## Related documentation
+
+- [Project reference](../PROJECT_REFERENCE.md)
+- [17-deployment.md](../17-deployment.md)

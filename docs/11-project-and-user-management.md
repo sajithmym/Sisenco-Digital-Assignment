@@ -1,3 +1,13 @@
-# 11-project-and-user-management
+# Project and user management
 
-This historical guide has been replaced by the current [Project Reference](PROJECT_REFERENCE.md#roles-and-permissions). Use [SETUP.md](../SETUP.md) for local commands. It is retained as a stable link only and does not describe the current implementation independently.
+## Projects
+
+Authenticated users can read active projects for report selection. Managers/admins create, update, archive, and reactivate projects. `DELETE /api/v1/projects/:id` soft-archives a project; it does not destroy historical report relationships. A patch can reactivate an archived project.
+
+`user_projects` is present for future assignment rules but is not currently used to restrict report project selection or visibility. Do not describe project assignment enforcement as implemented.
+
+## Users
+
+Managers/admins can list and view users. Only admins can create a user, change role, or activate/deactivate an account. Managers receive a server-side forbidden response for these changes even if they alter UI requests.
+
+Self-registration is configurable and creates a pending account. Pending/inactive users cannot authenticate. Current role and active state are loaded for protected requests, so administrator changes apply immediately. Lists use validated pagination/filtering and never return refresh-token data.

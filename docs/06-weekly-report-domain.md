@@ -1,3 +1,16 @@
-# 06-weekly-report-domain
+# Weekly report domain
 
-This historical guide has been replaced by the current [Project Reference](PROJECT_REFERENCE.md#reporting-workflow-and-data-rules). Use [SETUP.md](../SETUP.md) for local commands. It is retained as a stable link only and does not describe the current implementation independently.
+A report belongs to one team member and one Monday-to-Sunday UTC reporting week. It may use an active project and includes completed tasks, next-week tasks, blockers, achievements, work-hour rows, and notes. Dynamic collections may be empty while drafting, but malformed/null arrays and blank item values are rejected.
+
+## State rules
+
+| State | Meaning | Allowed action |
+|---|---|---|
+| `DRAFT` | Private work in progress. | Author edits or submits. |
+| `SUBMITTED` | Awaiting decision. | Manager/admin approves or requests changes. |
+| `NEEDS_CORRECTION` | Changes requested. | Author edits and resubmits. |
+| `APPROVED` | Accepted. | Read-only. |
+
+The database permits one report per user/week. Backend UTC week rules are separate from the frontend display timezone (`NEXT_PUBLIC_APP_TIMEZONE`, default `Asia/Colombo`). Submission needs at least one completed task. Dashboard/roster output represents missing, draft, submitted, correction, and approved states without leaking draft content.
+
+Read [07 Review and version workflow](07-review-and-version-workflow.md) for transitions and audit history.

@@ -1,3 +1,19 @@
-# Historical planning note: 03-correction-resubmit-workflow
+# Correction and resubmission workflow
 
-This file is retained for repository history only. It is not a description of the implemented application and must not be used for setup, permissions, API, security, seed, test, or deployment decisions. Read the current [Project Reference](../PROJECT_REFERENCE.md) and [Setup Guide](../../SETUP.md).
+## Implemented behavior
+
+A manager/admin can request changes on a submitted report with a review comment. The report enters NEEDS_CORRECTION, the owner updates it, and a new submission returns it to SUBMITTED for a new decision.
+
+## Rules and boundaries
+
+Requesting changes requires a non-empty comment and only applies to SUBMITTED reports. The author alone can edit NEEDS_CORRECTION. Management cannot alter report content for the member.
+
+## Verification
+
+Exercise submit → request changes → member edit → resubmit. Confirm the comment is shown to the owner and a manager cannot request changes twice without another submission.
+
+## Related guides
+
+- [Weekly report domain](../06-weekly-report-domain.md)
+- [Review workflow](../07-review-and-version-workflow.md)
+- [Frontend architecture](../09-frontend-architecture.md)

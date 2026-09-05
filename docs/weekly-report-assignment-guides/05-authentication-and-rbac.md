@@ -1,3 +1,18 @@
-# Historical planning note: 05-authentication-and-rbac
+# Authentication and RBAC
 
-This file is retained for repository history only. It is not a description of the implemented application and must not be used for setup, permissions, API, security, seed, test, or deployment decisions. Read the current [Project Reference](../PROJECT_REFERENCE.md) and [Setup Guide](../../SETUP.md).
+## Purpose
+
+This implementation guide describes the current feature, the code boundary that owns it, and the expected behavior. It is a focused companion to [05-authentication-and-rbac.md](../05-authentication-and-rbac.md).
+
+## Current implementation
+
+Login issues a memory-held access token and HttpOnly rotating refresh cookie. Guards and service ownership checks enforce roles; managers cannot mutate users and drafts remain private from managers/admins.
+
+## Verify
+
+Test each role through the API: member manager-route denial, manager admin-route denial, admin user mutation, and no draft content in team data.
+
+## Related documentation
+
+- [Project reference](../PROJECT_REFERENCE.md)
+- [05-authentication-and-rbac.md](../05-authentication-and-rbac.md)

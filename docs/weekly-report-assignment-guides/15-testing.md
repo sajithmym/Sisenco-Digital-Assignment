@@ -1,3 +1,18 @@
-# Historical planning note: 15-testing
+# Testing and quality assurance
 
-This file is retained for repository history only. It is not a description of the implemented application and must not be used for setup, permissions, API, security, seed, test, or deployment decisions. Read the current [Project Reference](../PROJECT_REFERENCE.md) and [Setup Guide](../../SETUP.md).
+## Purpose
+
+This implementation guide describes the current feature, its code boundary, and the expected behavior. It is a focused companion to [15-testing.md](../15-testing.md).
+
+## Current implementation
+
+Jest unit tests cover services/guards/workflow, Supertest E2E validates HTTP behavior on an isolated migrated schema, and Vitest/Testing Library cover frontend core modules and components.
+
+## Verify
+
+Run build, lint, Prisma checks, 73 backend unit tests, 13 E2E tests, and 63 frontend tests before sign-off.
+
+## Related documentation
+
+- [Project reference](../PROJECT_REFERENCE.md)
+- [15-testing.md](../15-testing.md)

@@ -1,11 +1,22 @@
-# Documentation
+# Project documentation
 
-Current implementation documentation:
+This directory documents the Weekly Report Generator as implemented in this repository. Each numbered guide covers one technical area and the subfolders provide feature-level implementation walkthroughs.
 
-- [Project reference](PROJECT_REFERENCE.md): architecture, roles, workflow, API, database, security, tests, deployment, and manual submission work.
-- [Setup](../SETUP.md): local installation and commands.
-- [Root README](../README.md): concise project overview and quick start.
-- [Audit reconciliation](assignment-audit.md): verification of the historical audit against current code.
-- [Change record](assignment-fixes.md): confirmed fixes and validation results.
+## Start here
 
-The numbered guides and the two historical planning folders remain only as pointers. They are not implementation or setup authority.
+- [Project reference](PROJECT_REFERENCE.md) — architecture, roles, routes, database, configuration, security, tests, and releases.
+- [Local setup](../SETUP.md) — installation, environment variables, bootstrap, and checks.
+- [Requirements](01-requirements-and-scope.md), [architecture](02-system-architecture.md), and [testing](15-testing.md) — the main technical entry points.
+- [Assignment guides](weekly-report-assignment-guides/README.md) — implementation topics in project order.
+- [Feature guides](weekly-report-gap-improvement-guides/README.md) — report, review, dashboard, and management features.
+
+## Documentation map
+
+| Concern | Documents |
+|---|---|
+| Product and workflow | 01, 05, 06, 07, 10, 11 |
+| Platform | 02, 04, 08, 09, 13, 14 |
+| Operations | 03, 12, 15, 16, 17, 21 |
+| Submission readiness | 18, 19, 20, audit reconciliation, confirmed fixes |
+
+Documentation is based on the current source, committed migration, seed, and passing tests. The JavaScript files in this directory are audit helpers, not runtime application code.

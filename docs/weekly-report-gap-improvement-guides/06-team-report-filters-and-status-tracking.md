@@ -1,3 +1,19 @@
-# Historical planning note: 06-team-report-filters-and-status-tracking
+# Team report filters and status tracking
 
-This file is retained for repository history only. It is not a description of the implemented application and must not be used for setup, permissions, API, security, seed, test, or deployment decisions. Read the current [Project Reference](../PROJECT_REFERENCE.md) and [Setup Guide](../../SETUP.md).
+## Implemented behavior
+
+Manager report lists and the submission roster use DTO-validated query filters, pagination, date ranges, report status, and user/project-related criteria. The UI surfaces status badges and loading/empty/error states.
+
+## Rules and boundaries
+
+Team data contains non-draft reports only. Roster compliance is based on whether a member-week was submitted; PENDING and LATE use the documented UTC deadline rules.
+
+## Verification
+
+Try invalid filter values and confirm a validation response. Filter a manager list by date/status and verify a member draft never appears.
+
+## Related guides
+
+- [Weekly report domain](../06-weekly-report-domain.md)
+- [Review workflow](../07-review-and-version-workflow.md)
+- [Frontend architecture](../09-frontend-architecture.md)
